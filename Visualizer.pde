@@ -257,9 +257,9 @@ void drawVisualizer() {
     RenderLights();
   }
   
-  fxVisCanvas.beginDraw();
+  //fxVisCanvas.beginDraw();
   particleSystem.run();
-  fxVisCanvas.endDraw();
+  //fxVisCanvas.endDraw();
   
   partcount = particleSystem.particles.size();
   
