@@ -51,6 +51,11 @@ void drawBackground() {
   rectMode(CORNER);
 }
 
+void setBackgroundColorsByIndex(int index) {
+  backgroundVisCol = backgroundColors[index];
+  fittingBackgroundVisCol = fittingBackgroundColors[index];
+}
+
 void changeColorSchemeRdm() {
   if (random(1) < 0.05) {
     changeColorScheme();
@@ -59,34 +64,15 @@ void changeColorSchemeRdm() {
 
 
 void changeColorScheme() {
-  boolean onlyRGB = false;
-  int rdm1 = 0;
-  int rdm2 = 0;
-  int rdm3 = 0;
-  if (onlyRGB) {
-    int rdmCol = floor(random(0, 3));
-    if (rdmCol == 0) {
-      rdm1 = 1;
-    } else if (rdmCol == 1) {
-      rdm2 = 1;
-    } else if (rdmCol == 2) {
-      rdm3 = 1;
-    }
-  } else {
-    while ((rdm1 == 0 && rdm2 == 0 && rdm3 == 0) || (rdm1 == 1 && rdm2 == 1 && rdm3 == 1)) { //no black or white
-      rdm1 = floor(random(0, 2));
-      rdm2 = floor(random(0, 2));
-      rdm3 = floor(random(0, 2));
-    }
-  }
-  color newCol = color(150*rdm1, 150*rdm2, 150*rdm3);
+  //backgroundVisCol = color(150*rdm1, 150*rdm2, 150*rdm3);
+  int rdm = floor(random(0, backgroundColors.length));
+  setBackgroundColorsByIndex(rdm);
   for (int j = 0; j<gridSizeY; j++) {
     for (int i = 0; i<gridSizeX; i++) {
-      bgNodes[i][j].setColorAndFadeTo(newCol, 0.02);
+      bgNodes[i][j].setColorAndFadeTo(backgroundVisCol, 0.02);
     }
   }
 }
-
 
 class BackgroundNode {
 
@@ -139,11 +125,11 @@ class BackgroundNode {
     updateColor();
 
     //alpha = noise(posX*0.0008, posY*0.0002, t*0.1)*255.0;
-    
+
     alpha = 100;
-    
+
     //alpha = 255*(posX/width);
-    
+
     //alpha = constrain(alpha,20,255);
   }
 
@@ -165,14 +151,14 @@ class BackgroundNode {
     r *= curBright;
     g *= curBright;
     b *= curBright;
-    fill(r, g, b,170);
+    fill(r, g, b, 170);
     noStroke();
 
     //rectMode(CORNER);
     //rect(posX, posY, dim, dim);
-    
+
     ellipseMode(CORNER);
-    ellipse(posX,posY,dim,dim);
+    ellipse(posX, posY, dim, dim);
   }
 
   void setColorAndFadeTo(color next, float speed) {

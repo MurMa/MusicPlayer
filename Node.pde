@@ -42,7 +42,7 @@ class Node {
   PVector getNewPos() {
     int borderOutside = 200;
     int borderInside = 300;
-    
+
     float x;
     if (random(1) < 0.5) {
       x  = random(borderOutside, width/2-borderInside);
@@ -83,6 +83,8 @@ class Node {
     }
 
     color c = color(FFTColorVis);
+
+    c = fittingBackgroundVisCol;
 
     if (fillBars) {
       fill(c, 0+constrain((val-5)*1.2, 0, 155));

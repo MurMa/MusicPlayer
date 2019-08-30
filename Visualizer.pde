@@ -3,6 +3,10 @@ import java.util.Arrays;
 import ddf.minim.*;
 import ddf.minim.analysis.*;
 
+import ch.bildspur.postfx.builder.*;
+import ch.bildspur.postfx.pass.*;
+import ch.bildspur.postfx.*;
+
 float[] FFTvaluesVis;
 float[] FFToldvaluesVis;
 
@@ -28,6 +32,8 @@ float targetPhaseDif;
 
 FFT fftVis;
 
+color backgroundVisCol;
+color fittingBackgroundVisCol;
 PShader blur;
 PShader blurHor;
 PShader blurVert;
@@ -79,13 +85,23 @@ float nodeSmooth;
 int[] totalNodesMadeCounter;
 int[] standardNodeBands;
 
+color[] backgroundColors;
+color[] fittingBackgroundColors;
+
+PGraphics fxVisCanvas;
+
 void setupVisualizer() {
 
   colorMode(RGB, 255);
 
+  fxVisCanvas = createGraphics(width, height, P2D);
+  // compile shaders in setup
+  fx.preload(BloomPass.class);
+  //fx.preload(RGBSplitPass.class);
+
   lineTime = 0;
   linePhaseDif = 0;
-  
+
   menuY = -100;
 
   totalVolume = 0;
@@ -94,6 +110,11 @@ void setupVisualizer() {
   lastSecVol = 0;
   curSecVol = 0;
   iterCount = 0;
+
+  //                             BLUE               PURPLE              YELLOW              GREEN                CYAN
+  backgroundColors = new color[]{color(0, 30, 255), color(240, 0, 255), color(255, 231, 0), color(116, 238, 21), color(77, 238, 234)};
+  fittingBackgroundColors = new color[]{color(255, 231, 0), color(102, 255, 204), color(255, 102, 0), color(255, 51, 153), color(102, 255, 102)};
+  //                                    YELLOW              LIGHT CYAN            ORANGE              PINK                  GREEN-CYAN
 
   setBackgroundConsts();
 
@@ -162,6 +183,8 @@ void setupVisualizer() {
   shockwaveSystem = new ShockwaveSystem();
   spawnShockwaveNextBeat = false;
 
+  setBackgroundColorsByIndex(0);
+
   blur = loadShader("blur.glsl"); 
 
   float blurSteps = 50.0;
@@ -207,6 +230,7 @@ void visualizerAnalyseSong() {
 }
 
 void drawVisualizer() {
+  blendMode(BLEND);
   //background(0);
   rectMode(CORNER);
   ellipseMode(CENTER);
@@ -232,10 +256,13 @@ void drawVisualizer() {
   if (showLights) {
     RenderLights();
   }
-
+  
+  fxVisCanvas.beginDraw();
   particleSystem.run();
+  fxVisCanvas.endDraw();
+  
   partcount = particleSystem.particles.size();
-
+  
   shockwaveSystem.run();
 
   RenderFFTVis();
@@ -259,6 +286,17 @@ void drawVisualizer() {
   text(frameRate, 10, 20);
   text(partcount, 10, 40);
   text(bassStreakCounter, 10, 60);
+  
+  /*
+  blendMode(BLEND);
+  image(fxVisCanvas, 0, 0);
+
+  blendMode(SCREEN);
+  fx.render(fxVisCanvas)
+    //.brightPass(0.5)
+    .blur(20,50)
+    //.bloom(0.5, 10, 20)
+    .compose();*/
 }
 
 

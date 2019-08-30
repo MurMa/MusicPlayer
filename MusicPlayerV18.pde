@@ -13,6 +13,7 @@ import controlP5.*;
 import java.util.Arrays;
 
 ControlP5 cp5;
+PostFX fx;
 
 Minim minim;
 AudioPlayer player;
@@ -163,10 +164,11 @@ void setup()
   //size(displayWidth, displayHeight, P2D);
 
   fullScreen(P2D);
-
+  frameRate(60);
+  
   //surface.setResizable(true);
 
-
+  fx = new PostFX(this);
 
   halfwidth = width/2;
   halfheight = height/2;
@@ -485,8 +487,10 @@ void WallpaperSelected(File selection) {
 }
 
 void RenderWallpaper() {
-  image(Wallpaper, 0, 0, width, height); //Image streched
-  //image(Wallpaper, 0, 0);
+  if (Wallpaper != null) {
+    image(Wallpaper, 0, 0, width, height); //Image streched
+    //image(Wallpaper, 0, 0);
+  }
 }
 
 

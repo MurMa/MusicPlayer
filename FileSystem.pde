@@ -35,20 +35,22 @@ void readFilesInDirectory() {
 
 
 void filterfilenames() {
-  StringList filterednames = new StringList();
-  for (int i = 0; i<filenames.length; i++) {
-    String ss1 = filenames[i].substring(filenames[i].length()-3);
-    if (ss1.equals("mp3") || ss1.equals("wav")) {
-      filterednames.append(filenames[i]);
+  if (filenames != null) {
+    StringList filterednames = new StringList();
+    for (int i = 0; i<filenames.length; i++) {
+      String ss1 = filenames[i].substring(filenames[i].length()-3);
+      if (ss1.equals("mp3") || ss1.equals("wav")) {
+        filterednames.append(filenames[i]);
+      }
     }
-  }
-  filenames = filterednames.array();
-  println("Filtered files: ");
-  printArray(filenames);
-  
-  Capsfilenames = new String[filenames.length];
-  for (int i = 0; i<filenames.length; i++) {
-    Capsfilenames[i] = filenames[i].toUpperCase();
+    filenames = filterednames.array();
+    println("Filtered files: ");
+    printArray(filenames);
+
+    Capsfilenames = new String[filenames.length];
+    for (int i = 0; i<filenames.length; i++) {
+      Capsfilenames[i] = filenames[i].toUpperCase();
+    }
   }
 }
 
