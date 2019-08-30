@@ -123,7 +123,9 @@ void No() {
 
 void RandomSong() {
   filepos = int(random(0, filenames.length));
-  nameLoadSong(filenames[filepos]);
+  if (filenames.length > filepos) {
+    nameLoadSong(filenames[filepos]);
+  }
 }
 
 
