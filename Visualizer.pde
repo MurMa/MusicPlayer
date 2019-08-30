@@ -10,8 +10,6 @@ import ch.bildspur.postfx.*;
 float[] FFTvaluesVis;
 float[] FFToldvaluesVis;
 
-boolean showFFTHighlights;
-
 color FFTColorVis;
 color FFTHighlight1Vis;
 color FFTHighlight2Vis;
@@ -24,16 +22,22 @@ float FFTdify;
 float FFTsmooth;
 
 float t;
+//Laser beams
 float lineTime;
+float lineSpeed;
+float targetLineSpeed;
+float lastPhaseDif;
 float linePhaseDif;
 float linePhaseFadePos;
-float lastPhaseDif;
 float targetPhaseDif;
 
 FFT fftVis;
 
+//Current color theme
 color backgroundVisCol;
 color fittingBackgroundVisCol;
+
+//Shaders for blurring when in menu
 PShader blur;
 PShader blurHor;
 PShader blurVert;
@@ -50,17 +54,21 @@ float totalVolume;
 float bassVolume;
 float globalMoveSpeedMod;
 
+//Calculating overall song volume in one second
 float iterCount;
 float curSecVol;
 float lastSecVol;
 
 int bassStreakCounter;
 
+//Variables to set with toggle buttons
+boolean showFFTHighlights;
 boolean showLightning;
 boolean showLights;
 boolean fillBars;
 boolean strokeBars;
 boolean showParticles;
+boolean colorNodes;
 
 PFont RalewayS;
 PFont RalewayM;
@@ -73,9 +81,14 @@ MyToggle B4;
 MyToggle B5;
 MyButton B6;
 MyToggle B7;
+MyToggle B8;
 
 AudioInput liveIn;
 boolean liveModeVis;
+
+int phaseDiffThreshold;
+int shockwaveTriggerThreshold;
+int changeColorThemeThreshold;
 
 float[][] spectraVisualizer;
 int[] bandCounter;
@@ -118,12 +131,13 @@ void setupVisualizer() {
 
   setBackgroundConsts();
 
-  showLightning = false;
+  showLightning = true;
   showLights = true;
   fillBars = true;
   strokeBars = true;
   showFFTHighlights = true;
   showParticles = true;
+  colorNodes = true;
 
   FFTbarsVis = 25;
 
@@ -151,8 +165,8 @@ void setupVisualizer() {
   textFont(RalewayM);
 
   PVector btnPos = new PVector(20, 25);
-  int btnDX = width/40;
-  int btnCount = 7;
+  int btnDX = width/50;
+  int btnCount = 8;
   PVector btnDim = new PVector((width-btnDX*btnCount)/btnCount, 50);
   PVector btnCurpos = btnPos.copy();
 
@@ -169,6 +183,8 @@ void setupVisualizer() {
   B5 = new MyToggle(btnCurpos, btnDim, "Lightning", showLightning, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B7 = new MyToggle(btnCurpos, btnDim, "Particles", showParticles, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B8 = new MyToggle(btnCurpos, btnDim, "Color Nodes", colorNodes, color(200, 255, 200), color(255, 200, 200));
 
   B1.setFont("Raleway", 24, true);
   B2.setFont("Raleway", 24, true);
@@ -182,6 +198,11 @@ void setupVisualizer() {
 
   shockwaveSystem = new ShockwaveSystem();
   spawnShockwaveNextBeat = false;
+  
+  //Thresholds: The higher, the bigger the change in overall volume change has to be in order to trigger the action
+  phaseDiffThreshold = 75000; //Laser angle change threshold
+  shockwaveTriggerThreshold = 140000;
+  changeColorThemeThreshold = 100000; //Color Theme (Background and Nodes color)
 
   setBackgroundColorsByIndex(0);
 
@@ -312,13 +333,16 @@ void detectMoodChange() {
     iterCount = 0;
     float change = curSecVol - lastSecVol;
     //println("change to last sec: " + change);
-    if (abs(change) > 75000) {
+    if (abs(change) > phaseDiffThreshold) {
+      //Laser angle
       changePhaseDif();
     }
-    if (abs(change) > 100000) {
+    if (abs(change) > changeColorThemeThreshold) {
+      //Background and Nodes color
       changeColorScheme();
     }
-    if (abs(change) > 140000) {
+    if (abs(change) > shockwaveTriggerThreshold) {
+      //Shockwave trigger
       spawnShockwaveNextBeat = true;
     }
     lastSecVol = curSecVol;

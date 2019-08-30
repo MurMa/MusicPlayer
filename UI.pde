@@ -22,6 +22,9 @@ void mouseReleased() {
     if (B7.MouseOverButton()) {
       showParticles = B7.toggle();
     }
+    if (B8.MouseOverButton()) {
+      colorNodes = B8.toggle();
+    }
   }
 }
 
@@ -65,6 +68,7 @@ void drawMenu() {
     B5.run();
     B6.run();
     B7.run();
+    B8.run();
 
     popMatrix();
   }

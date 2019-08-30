@@ -83,9 +83,9 @@ class Node {
     }
 
     color c = color(FFTColorVis);
-
-    c = fittingBackgroundVisCol;
-
+    if (colorNodes) {
+      c = fittingBackgroundVisCol;
+    }
     if (fillBars) {
       fill(c, 0+constrain((val-5)*1.2, 0, 155));
       if (strokeBars) {

@@ -32,6 +32,21 @@ void fadePhaseDif() {
   }
 }
 
+void fadeLineSpeed() {
+  float bonusSpeed = (curSecVol+lastSecVol)*0.000000001;
+  float fadeSpeed = 0.00001+bonusSpeed;
+  if (abs(lineSpeed - targetLineSpeed) < fadeSpeed) {
+    lineSpeed = targetLineSpeed;
+    return;
+  }
+  if (lineSpeed > targetLineSpeed) {
+    lineSpeed -= fadeSpeed;
+  } else if (lineSpeed < targetLineSpeed) {
+    lineSpeed += fadeSpeed;
+  }
+}
+
+//Single Laser line
 void drawLine(float time, float phaseDif, int innerRad, int outerRad, color col) {
   float x1 = cos(time)*innerRad;
   float y1 = sin(time)*innerRad;
@@ -41,12 +56,13 @@ void drawLine(float time, float phaseDif, int innerRad, int outerRad, color col)
   line(width/2+x2, height/2+y2, width/2+x1, height/2+y1);
 }
 
+//Bunch of laser lines
 void drawLines() {
   fadePhaseDif();
-  float lineSpeed;
+  fadeLineSpeed();
 
   float bonusSpeed = (curSecVol+lastSecVol)*0.000000005;
-  lineSpeed = 0.001+bonusSpeed;
+  targetLineSpeed = 0.001+bonusSpeed;
   lineTime += lineSpeed;
   int innerRad = 80;
   int outerRad = height+200;
@@ -93,7 +109,8 @@ void drawLines() {
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime-HALF_PI, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  
+
+  //So that the laser beams fade out
   drawEllipseFade(new PVector(width/2, height/2), 1200, 40, color(0, 20));
 }
 
