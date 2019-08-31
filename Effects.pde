@@ -111,17 +111,18 @@ void drawLines() {
   }
 
   //So that the laser beams fade out
-  drawEllipseFade(new PVector(width/2, height/2), 1200, 40, color(0, 20));
+  drawEllipseFade(new PVector(width/2, height/2), 1600, 40, 40.0);
 }
 
-void drawEllipseFade(PVector o, float size, int steps, color col) {
+void drawEllipseFade(PVector o, float size, int steps, float endalpha) {
   fxVisCanvas.ellipseMode(CENTER);
   PVector origin = o.copy();
-  fxVisCanvas.fill(col);
   fxVisCanvas.noStroke();
-  float dif = size / steps;
+  float difSize = size / steps;
+  float difAlpha = endalpha / steps;
   for (int i = 0; i<steps; i++) {
-    fxVisCanvas.ellipse(origin.x, origin.y, i*dif, i*dif);
+    fxVisCanvas.fill(0, endalpha-(difAlpha*i));
+    fxVisCanvas.ellipse(origin.x, origin.y, i*difSize, i*difSize);
   }
 }
 

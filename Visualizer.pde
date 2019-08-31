@@ -433,7 +433,7 @@ void checkShockwave() {
 
 void checkBassStreak() {
   int minVal = 200;
-  int minStreak = 40;
+  int minStreak = 20;
   if (FFTvaluesVis[1] >= minVal) {
     bassStreakCounter++;
   } else {
