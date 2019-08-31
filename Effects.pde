@@ -34,7 +34,7 @@ void fadePhaseDif() {
 
 void fadeLineSpeed() {
   float bonusSpeed = lastSecVol*0.000000001;
-  float fadeSpeed = 0.000001+bonusSpeed;
+  float fadeSpeed = 0.0000005+bonusSpeed;
   if (abs(lineSpeed - targetLineSpeed) < fadeSpeed) {
     lineSpeed = targetLineSpeed;
     return;

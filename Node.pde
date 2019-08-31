@@ -62,7 +62,7 @@ class Node {
   }
 
   void update() {
-    size = val * (band/35+0.6) * 1.2;
+    size = val * (band/30+0.6) * 1.2;
     size = constrain(size, 0, 300);
     if (size > 60) {
       if (showParticles) {
