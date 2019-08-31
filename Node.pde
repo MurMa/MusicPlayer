@@ -78,8 +78,8 @@ class Node {
 
     for (int i = 0; i<connections.length; i++) {
       float combVal = ((val/10)*(connections[i].val/10))*0.1;
-      stroke(255, combVal*combVal);
-      line(pos.x, pos.y, connections[i].pos.x, connections[i].pos.y);
+      fxVisCanvas.stroke(255, combVal*combVal);
+      fxVisCanvas.line(pos.x, pos.y, connections[i].pos.x, connections[i].pos.y);
     }
 
     color c = color(FFTColorVis);
@@ -87,18 +87,18 @@ class Node {
       c = fittingBackgroundVisCol;
     }
     if (fillBars) {
-      fill(c, 0+constrain((val-5)*1.2, 0, 155));
+      fxVisCanvas.fill(c, 0+constrain((val-5)*1.2, 0, 155));
       if (strokeBars) {
-        stroke(c, 0+constrain((val-5)*1.2, 0, 100));
+        fxVisCanvas.stroke(c, 0+constrain((val-5)*1.2, 0, 100));
       }
     } else {
-      noFill();
+      fxVisCanvas.noFill();
       if (strokeBars) {
-        stroke(c, 20+constrain((val-5)*1.2, 0, 100));
+        fxVisCanvas.stroke(c, 20+constrain((val-5)*1.2, 0, 100));
       }
     }
 
-    ellipse(pos.x, pos.y, size, size);
+   fxVisCanvas.ellipse(pos.x, pos.y, size, size);
   }
 
   void addConnection(int index, Node n) {

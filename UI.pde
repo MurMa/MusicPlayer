@@ -47,19 +47,20 @@ void keyReleased() {
 }
 
 void drawMenu() {
+  menuVisCanvas.beginDraw();
   if (menuY > -100) {
-    filter(blur);
-    filter(blur);
-    rectMode(CORNER);
-    noStroke();
-    pushMatrix();
-    translate(0, menuY);
+    menuVisCanvas.filter(blur);
+    menuVisCanvas.filter(blur);
+    menuVisCanvas.rectMode(CORNER);
+    menuVisCanvas.noStroke();
+    menuVisCanvas.pushMatrix();
+    menuVisCanvas.translate(0, menuY);
 
-    fill(180, 220, 255, 150);
-    rect(0, 0, width, 100);
+    menuVisCanvas.fill(180, 220, 255, 150);
+    menuVisCanvas.rect(0, 0, width, 100);
 
-    fill(50, 100, 150, 200);
-    rect(0, 100, width, 5);
+    menuVisCanvas.fill(50, 100, 150, 200);
+    menuVisCanvas.rect(0, 100, width, 5);
 
     B1.run();
     B2.run();
@@ -70,8 +71,16 @@ void drawMenu() {
     B7.run();
     B8.run();
 
-    popMatrix();
+    menuVisCanvas.popMatrix();
   }
+  if (menuY < 0 && menuY > -100) {
+    menuVisCanvas.rectMode(CORNER);
+    menuVisCanvas.noStroke();
+
+    menuVisCanvas.fill(0, 255);
+    menuVisCanvas.rect(0, menuY+90, width, 25);
+  }
+  menuVisCanvas.endDraw();
 }
 
 void showMenu() {
@@ -183,35 +192,35 @@ class MyButton {
   }
 
   void display() {
-    stroke(0);
-    strokeWeight(1);
+    menuVisCanvas.stroke(0);
+    menuVisCanvas.strokeWeight(1);
 
     if (gradients) {
-      stroke(lerpColor(colorDea, color(0), 0.5));
-      noFill();
-      rect (position.x-1, position.y-1, dimensions.x+2, dimensions.y+2);
+      menuVisCanvas.stroke(lerpColor(colorDea, color(0), 0.5));
+      menuVisCanvas.noFill();
+      menuVisCanvas.rect (position.x-1, position.y-1, dimensions.x+2, dimensions.y+2);
       for (int i = 0; i<=dimensions.y; i++) {
-        stroke(lerpColor(colorAct, btncolor, i/dimensions.y));
-        line(position.x, position.y+i, position.x+dimensions.x, position.y+i);
+        menuVisCanvas.stroke(lerpColor(colorAct, btncolor, i/dimensions.y));
+        menuVisCanvas.line(position.x, position.y+i, position.x+dimensions.x, position.y+i);
       }
     } else {
-      fill(btncolor);
-      rect(position.x, position.y, dimensions.x, dimensions.y);
+      menuVisCanvas.fill(btncolor);
+      menuVisCanvas.rect(position.x, position.y, dimensions.x, dimensions.y);
     }
     if (disabled) {
-      fill(0, 100);
-      rect(position.x, position.y, dimensions.x, dimensions.y);
+      menuVisCanvas.fill(0, 100);
+      menuVisCanvas.rect(position.x, position.y, dimensions.x, dimensions.y);
     }
 
-    textAlign(CENTER, CENTER);
-    textFont(Font);
-    fill(0);
+    menuVisCanvas.textAlign(CENTER, CENTER);
+    menuVisCanvas.textFont(Font);
+    menuVisCanvas.fill(0);
     if (secondLabel.length() > 0) {
-      text(label, position.x+dimensions.x/2, position.y+dimensions.y/3.4);
-      fill(0, 200);
-      text(secondLabel, position.x+dimensions.x/2, position.y+dimensions.y/1.6);
+      menuVisCanvas.text(label, position.x+dimensions.x/2, position.y+dimensions.y/3.4);
+      menuVisCanvas.fill(0, 200);
+      menuVisCanvas.text(secondLabel, position.x+dimensions.x/2, position.y+dimensions.y/1.6);
     } else {
-      text(label, position.x+dimensions.x/2, position.y+dimensions.y/2.4);
+      menuVisCanvas.text(label, position.x+dimensions.x/2, position.y+dimensions.y/2.4);
     }
   }
 
@@ -345,27 +354,27 @@ class MyToggle {
   }
 
   void display() {
-    strokeWeight(1);
-    stroke(255, 200);
+    menuVisCanvas.strokeWeight(1);
+    menuVisCanvas.stroke(255, 200);
     if (value) {
       btncolor = colorAct;
     } else {
       btncolor = colorDea;
     }
-    fill(btncolor, btnAlpha);
-    rect (position.x, position.y, dimensions.x, dimensions.y);
+    menuVisCanvas.fill(btncolor, btnAlpha);
+    menuVisCanvas.rect (position.x, position.y, dimensions.x, dimensions.y);
     if (disabled) {
-      fill(0, 50);
-      rect(position.x, position.y, dimensions.x, dimensions.y);
+      menuVisCanvas.fill(0, 50);
+      menuVisCanvas.rect(position.x, position.y, dimensions.x, dimensions.y);
     }
-    textFont(Font);
-    fill(fontColor);
+    menuVisCanvas.textFont(Font);
+    menuVisCanvas.fill(fontColor);
     if (labelOutside) {
-      textAlign(CORNER, CENTER);
-      text(label, position.x+dimensions.x+20, position.y+dimensions.y/2.4);
+      menuVisCanvas.textAlign(CORNER, CENTER);
+      menuVisCanvas.text(label, position.x+dimensions.x+20, position.y+dimensions.y/2.4);
     } else {
-      textAlign(CENTER, CENTER);
-      text(label, position.x+dimensions.x/2, position.y+dimensions.y/2.4);
+      menuVisCanvas.textAlign(CENTER, CENTER);
+      menuVisCanvas.text(label, position.x+dimensions.x/2, position.y+dimensions.y/2.4);
     }
   }
 

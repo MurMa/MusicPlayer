@@ -101,16 +101,28 @@ int[] standardNodeBands;
 color[] backgroundColors;
 color[] fittingBackgroundColors;
 
+PGraphics menuVisCanvas;
 PGraphics fxVisCanvas;
+PostFXSupervisor supervisor;
+BrightPass brightPass;
+SobelPass sobelPass;
+BloomPass bloomPass;
+RGBSplitPass rgbSplitPass;
+BrightnessContrastPass brightnessContrastPass;
 
 void setupVisualizer() {
 
   colorMode(RGB, 255);
 
+  menuVisCanvas = createGraphics(width, height, P2D);
   fxVisCanvas = createGraphics(width, height, P2D);
-  // compile shaders in setup
-  fx.preload(BloomPass.class);
-  //fx.preload(RGBSplitPass.class);
+  // create supervisor and load shaders
+  supervisor = new PostFXSupervisor(this);
+  brightPass = new BrightPass(this, 0.3f);
+  sobelPass = new SobelPass(this);
+  bloomPass = new BloomPass(this, 0.6, 20, 40.0);
+  rgbSplitPass = new RGBSplitPass(this, 0);
+  brightnessContrastPass = new BrightnessContrastPass(this, 0.0, 1.0);
 
   lineTime = 0;
   linePhaseDif = 0;
@@ -198,7 +210,7 @@ void setupVisualizer() {
 
   shockwaveSystem = new ShockwaveSystem();
   spawnShockwaveNextBeat = false;
-  
+
   //Thresholds: The higher, the bigger the change in overall volume change has to be in order to trigger the action
   phaseDiffThreshold = 75000; //Laser angle change threshold
   shockwaveTriggerThreshold = 140000;
@@ -250,17 +262,44 @@ void visualizerAnalyseSong() {
   }
 }
 
+void setRgbSplitPassByBassLevel() {
+  float delta = FFTvaluesVis[1]*0.0045;
+  delta = constrain(delta, 0, 2.5);
+  //println("delta:",delta);
+  float minDelta = 0.1;
+  if (delta > minDelta) {
+    rgbSplitPass.setDelta(delta*delta*100);
+  }
+}
+
+void setContrastPassByVolumeLevel() {
+  float contrast = lastSecVol*0.000004;
+  contrast = constrain(contrast*contrast+0.1, 0, 2.5);
+  //println("contrast:", contrast);
+  brightnessContrastPass.setContrast(contrast);
+}
+
 void drawVisualizer() {
-  blendMode(BLEND);
-  //background(0);
-  rectMode(CORNER);
-  ellipseMode(CENTER);
-  fill(0, 150);
-  noStroke();
-  rect(0, 0, width, height);
+
+  fxVisCanvas.beginDraw();
+
+  fxVisCanvas.ellipseMode(CENTER);
+  fxVisCanvas.rectMode(CORNER);
+  fxVisCanvas.fill(0, 150);
+  fxVisCanvas.noStroke();
+  fxVisCanvas.rect(0, 0, width, height);
+
+  /*rectMode(CORNER);
+   ellipseMode(CENTER);
+   fill(0, 150);
+   noStroke();
+   rect(0, 0, width, height);*/
   t += 0.01;
 
   CalculateFFT();
+
+  setRgbSplitPassByBassLevel();
+  setContrastPassByVolumeLevel();
 
   drawBackground();
   drawLines();
@@ -277,18 +316,17 @@ void drawVisualizer() {
   if (showLights) {
     RenderLights();
   }
-  
-  //fxVisCanvas.beginDraw();
+
+
   particleSystem.run();
-  //fxVisCanvas.endDraw();
-  
+
   partcount = particleSystem.particles.size();
-  
+
   shockwaveSystem.run();
 
   RenderFFTVis();
 
-  ellipseMode(CENTER);
+  fxVisCanvas.ellipseMode(CENTER);
   for (int i = 0; i<nodes.length; i++) {
     nodes[i].setVal(FFTvaluesVis[nodes[i].getBand()]);
     nodes[i].run();
@@ -301,23 +339,31 @@ void drawVisualizer() {
     hideMenu();
   }
 
-  textAlign(CORNER);
-  fill(255);
-  textFont(RalewayS);
-  text(frameRate, 10, 20);
-  text(partcount, 10, 40);
-  text(bassStreakCounter, 10, 60);
-  
-  /*
+  fxVisCanvas.textAlign(CORNER);
+  fxVisCanvas.fill(255);
+  fxVisCanvas.textFont(RalewayS);
+  fxVisCanvas.text(frameRate, 10, 20);
+  fxVisCanvas.text(partcount, 10, 40);
+  fxVisCanvas.text(bassStreakCounter, 10, 60);
+
+  fxVisCanvas.endDraw();
+
   blendMode(BLEND);
   image(fxVisCanvas, 0, 0);
+  if (menuY > -100) {
+    image(menuVisCanvas, 0, 0);
+  }
 
   blendMode(SCREEN);
-  fx.render(fxVisCanvas)
-    //.brightPass(0.5)
-    .blur(20,50)
-    //.bloom(0.5, 10, 20)
-    .compose();*/
+  supervisor.render(menuVisCanvas);
+  supervisor.render(fxVisCanvas);
+  supervisor.pass(bloomPass);
+  supervisor.pass(rgbSplitPass);
+  supervisor.pass(brightnessContrastPass);
+  //supervisor.pass(brightPass);
+  //supervisor.pass(sobelPass);
+  supervisor.compose();
+  blendMode(BLEND);
 }
 
 
@@ -329,7 +375,7 @@ float heightToFTTVal(float posY) {
 
 void detectMoodChange() {
   iterCount++;
-  if (iterCount > 80) {
+  if (iterCount > 40) {
     iterCount = 0;
     float change = curSecVol - lastSecVol;
     //println("change to last sec: " + change);
@@ -438,13 +484,13 @@ void CalculateFFT() {
 
 
 void RenderFFTVis() {
-  rectMode(CENTER);
+  fxVisCanvas.rectMode(CENTER);
   //noStroke();
   //noFill();
   if (!strokeBars) {
-    noStroke();
+    fxVisCanvas.noStroke();
   }
-  strokeWeight(1);
+  fxVisCanvas.strokeWeight(1);
   color c;
 
   totalVolume = 0;
@@ -484,18 +530,18 @@ void RenderFFTVis() {
     }
 
     if (fillBars) {
-      fill(c, 20+constrain((val-5)*0.7, 0, 200));
+      fxVisCanvas.fill(c, 20+constrain((val-5)*0.7, 0, 200));
       if (strokeBars) {
-        stroke(c, 40+constrain((val-5)*0.6, 0, 200));
+        fxVisCanvas.stroke(c, 40+constrain((val-5)*0.6, 0, 200));
       }
     } else {
-      noFill();
+      fxVisCanvas.noFill();
       if (strokeBars) {
-        stroke(c, 60+constrain((val-5)*1.2, 0, 190));
+        fxVisCanvas.stroke(c, 60+constrain((val-5)*1.2, 0, 190));
       }
     }
 
-    rect(FFTXVis, height-FFTYVis-i*FFTdify, constrain(FFTvaluesVis[i]*2, 0, 600), FFTdify);
+    fxVisCanvas.rect(FFTXVis, height-FFTYVis-i*FFTdify, constrain(FFTvaluesVis[i]*2, 0, 600), FFTdify);
   }
 
   globalMoveSpeedMod = bassVolume/500;

@@ -13,7 +13,6 @@ import controlP5.*;
 import java.util.Arrays;
 
 ControlP5 cp5;
-PostFX fx;
 
 Minim minim;
 AudioPlayer player;
@@ -167,8 +166,6 @@ void setup()
   frameRate(60);
 
   //surface.setResizable(true);
-
-  fx = new PostFX(this);
 
   halfwidth = width/2;
   halfheight = height/2;
