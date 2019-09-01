@@ -44,6 +44,8 @@ int calcpos = 0;
 boolean isCalculating = false;
 boolean ignoreExistingData;
 
+long menuSwitchMillis;
+
 StringList SearchResults = new StringList();
 
 byte spectra[];

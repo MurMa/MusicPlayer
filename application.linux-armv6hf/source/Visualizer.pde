@@ -10,8 +10,6 @@ import ch.bildspur.postfx.*;
 float[] FFTvaluesVis;
 float[] FFToldvaluesVis;
 
-boolean showFFTHighlights;
-
 color FFTColorVis;
 color FFTHighlight1Vis;
 color FFTHighlight2Vis;
@@ -24,17 +22,25 @@ float FFTdify;
 float FFTsmooth;
 
 float t;
+//Laser beams
 float lineTime;
+float lineSpeed;
+float targetLineSpeed;
+float lastPhaseDif;
 float linePhaseDif;
 float linePhaseFadePos;
-float lastPhaseDif;
 float targetPhaseDif;
 
 FFT fftVis;
 
+//Current color theme
 color backgroundVisCol;
 color fittingBackgroundVisCol;
+
+//Shader for blurring when in menu
 PShader blur;
+
+//Shaders for blurring background Nodes
 PShader blurHor;
 PShader blurVert;
 
@@ -50,17 +56,23 @@ float totalVolume;
 float bassVolume;
 float globalMoveSpeedMod;
 
+//Calculating overall song volume in one second
 float iterCount;
 float curSecVol;
 float lastSecVol;
 
 int bassStreakCounter;
 
+//Variables to set with toggle buttons
+boolean showFFTHighlights;
 boolean showLightning;
 boolean showLights;
 boolean fillBars;
 boolean strokeBars;
 boolean showParticles;
+boolean colorNodes;
+boolean showLaserBeams;
+boolean showPostFx;
 
 PFont RalewayS;
 PFont RalewayM;
@@ -73,9 +85,16 @@ MyToggle B4;
 MyToggle B5;
 MyButton B6;
 MyToggle B7;
+MyToggle B8;
+MyToggle B9;
+MyToggle B10;
 
 AudioInput liveIn;
 boolean liveModeVis;
+
+int phaseDiffThreshold;
+int shockwaveTriggerThreshold;
+int changeColorThemeThreshold;
 
 float[][] spectraVisualizer;
 int[] bandCounter;
@@ -88,16 +107,26 @@ int[] standardNodeBands;
 color[] backgroundColors;
 color[] fittingBackgroundColors;
 
+PGraphics menuVisCanvas;
 PGraphics fxVisCanvas;
+PostFXSupervisor supervisor;
+BlurPass blurPass;
+BloomPass bloomPass;
+RGBSplitPass rgbSplitPass;
+BrightnessContrastPass brightnessContrastPass;
 
 void setupVisualizer() {
 
   colorMode(RGB, 255);
 
+  menuVisCanvas = createGraphics(width, height, P2D);
   fxVisCanvas = createGraphics(width, height, P2D);
-  // compile shaders in setup
-  fx.preload(BloomPass.class);
-  //fx.preload(RGBSplitPass.class);
+  // create supervisor and load shaders
+  supervisor = new PostFXSupervisor(this);
+  blurPass = new BlurPass(this, 40, 100.0, true);
+  bloomPass = new BloomPass(this, 0.6, 20, 40.0);
+  rgbSplitPass = new RGBSplitPass(this, 0);
+  brightnessContrastPass = new BrightnessContrastPass(this, 0.0, 1.0);
 
   lineTime = 0;
   linePhaseDif = 0;
@@ -124,6 +153,9 @@ void setupVisualizer() {
   strokeBars = true;
   showFFTHighlights = true;
   showParticles = true;
+  colorNodes = true;
+  showLaserBeams = true;
+  showPostFx = true;
 
   FFTbarsVis = 25;
 
@@ -151,14 +183,14 @@ void setupVisualizer() {
   textFont(RalewayM);
 
   PVector btnPos = new PVector(20, 25);
-  int btnDX = width/40;
-  int btnCount = 7;
+  int btnDX = width/50;
+  int btnCount = 10;
   PVector btnDim = new PVector((width-btnDX*btnCount)/btnCount, 50);
   PVector btnCurpos = btnPos.copy();
 
   B6 = new MyButton(btnCurpos, btnDim, "Back", color(200), color(100));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
-  B1 = new MyToggle(btnCurpos, btnDim, "FFT Highlights", showFFTHighlights, color(200, 255, 200), color(255, 200, 200));
+  B1 = new MyToggle(btnCurpos, btnDim, "Highlights", showFFTHighlights, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B2 = new MyToggle(btnCurpos, btnDim, "Fill Bars", fillBars, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
@@ -169,6 +201,12 @@ void setupVisualizer() {
   B5 = new MyToggle(btnCurpos, btnDim, "Lightning", showLightning, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B7 = new MyToggle(btnCurpos, btnDim, "Particles", showParticles, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B8 = new MyToggle(btnCurpos, btnDim, "Color Nodes", colorNodes, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B9 = new MyToggle(btnCurpos, btnDim, "Laser Beams", showLaserBeams, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B10 = new MyToggle(btnCurpos, btnDim, "Post Fx", showPostFx, color(200, 255, 200), color(255, 200, 200));
 
   B1.setFont("Raleway", 24, true);
   B2.setFont("Raleway", 24, true);
@@ -177,11 +215,19 @@ void setupVisualizer() {
   B5.setFont("Raleway", 24, true);
   B6.setFont("Raleway", 24, true);
   B7.setFont("Raleway", 24, true);
+  B8.setFont("Raleway", 24, true);
+  B9.setFont("Raleway", 24, true);
+  B10.setFont("Raleway", 24, true);
 
   particleSystem = new ParticleSystem();
 
   shockwaveSystem = new ShockwaveSystem();
   spawnShockwaveNextBeat = false;
+
+  //Thresholds: The higher, the bigger the change in overall volume change has to be in order to trigger the action
+  phaseDiffThreshold = 75000; //Laser angle change threshold
+  shockwaveTriggerThreshold = 140000;
+  changeColorThemeThreshold = 100000; //Color Theme (Background and Nodes color)
 
   setBackgroundColorsByIndex(0);
 
@@ -229,20 +275,45 @@ void visualizerAnalyseSong() {
   }
 }
 
+void setRgbSplitPassByBassLevel() {
+  float delta = FFTvaluesVis[1]*0.0045;
+  delta = constrain(delta, 0, 2.5);
+  //println("delta:",delta);
+  float minDelta = 0.1;
+  if (delta > minDelta) {
+    rgbSplitPass.setDelta(delta*delta*100);
+  }
+}
+
+void setContrastPassByVolumeLevel() {
+  float contrast = lastSecVol*0.000004;
+  contrast = constrain(contrast*contrast+0.1, 0, 2.5);
+  //println("contrast:", contrast);
+  brightnessContrastPass.setContrast(contrast);
+}
+
 void drawVisualizer() {
-  blendMode(BLEND);
-  //background(0);
-  rectMode(CORNER);
-  ellipseMode(CENTER);
-  fill(0, 150);
-  noStroke();
-  rect(0, 0, width, height);
+  fxVisCanvas.beginDraw();
+
+  fxVisCanvas.ellipseMode(CENTER);
+  fxVisCanvas.rectMode(CORNER);
+  fxVisCanvas.fill(0, 150);
+  fxVisCanvas.noStroke();
+  fxVisCanvas.rect(0, 0, width, height);
+
   t += 0.01;
 
   CalculateFFT();
 
+  if (showPostFx) {
+    setRgbSplitPassByBassLevel();
+    setContrastPassByVolumeLevel();
+  }
+
   drawBackground();
-  drawLines();
+  if (showLaserBeams) {
+    drawLines();
+  }
 
   runRgbCube();
 
@@ -256,18 +327,17 @@ void drawVisualizer() {
   if (showLights) {
     RenderLights();
   }
-  
-  fxVisCanvas.beginDraw();
+
+
   particleSystem.run();
-  fxVisCanvas.endDraw();
-  
+
   partcount = particleSystem.particles.size();
-  
+
   shockwaveSystem.run();
 
   RenderFFTVis();
 
-  ellipseMode(CENTER);
+  fxVisCanvas.ellipseMode(CENTER);
   for (int i = 0; i<nodes.length; i++) {
     nodes[i].setVal(FFTvaluesVis[nodes[i].getBand()]);
     nodes[i].run();
@@ -280,23 +350,31 @@ void drawVisualizer() {
     hideMenu();
   }
 
-  textAlign(CORNER);
-  fill(255);
-  textFont(RalewayS);
-  text(frameRate, 10, 20);
-  text(partcount, 10, 40);
-  text(bassStreakCounter, 10, 60);
-  
-  /*
+  fxVisCanvas.textAlign(CORNER);
+  fxVisCanvas.fill(255);
+  fxVisCanvas.textFont(RalewayS);
+  fxVisCanvas.text(frameRate, 10, 20);
+  fxVisCanvas.text(partcount, 10, 40);
+  fxVisCanvas.text(bassStreakCounter, 10, 60);
+
+  fxVisCanvas.endDraw();
+
   blendMode(BLEND);
   image(fxVisCanvas, 0, 0);
+  if (menuY > -100) {
+    image(menuVisCanvas, 0, 0);
+  }
 
   blendMode(SCREEN);
-  fx.render(fxVisCanvas)
-    //.brightPass(0.5)
-    .blur(20,50)
-    //.bloom(0.5, 10, 20)
-    .compose();*/
+  supervisor.render(menuVisCanvas);
+  supervisor.render(fxVisCanvas);
+  if (menuY < -100 && showPostFx) {
+    supervisor.pass(bloomPass);
+    supervisor.pass(rgbSplitPass);
+    supervisor.pass(brightnessContrastPass);
+  }
+  supervisor.compose();
+  blendMode(BLEND);
 }
 
 
@@ -308,17 +386,20 @@ float heightToFTTVal(float posY) {
 
 void detectMoodChange() {
   iterCount++;
-  if (iterCount > 80) {
+  if (iterCount > 40) {
     iterCount = 0;
     float change = curSecVol - lastSecVol;
     //println("change to last sec: " + change);
-    if (abs(change) > 75000) {
+    if (abs(change) > phaseDiffThreshold) {
+      //Laser angle
       changePhaseDif();
     }
-    if (abs(change) > 100000) {
+    if (abs(change) > changeColorThemeThreshold) {
+      //Background and Nodes color
       changeColorScheme();
     }
-    if (abs(change) > 140000) {
+    if (abs(change) > shockwaveTriggerThreshold) {
+      //Shockwave trigger
       spawnShockwaveNextBeat = true;
     }
     lastSecVol = curSecVol;
@@ -363,7 +444,7 @@ void checkShockwave() {
 
 void checkBassStreak() {
   int minVal = 200;
-  int minStreak = 40;
+  int minStreak = 20;
   if (FFTvaluesVis[1] >= minVal) {
     bassStreakCounter++;
   } else {
@@ -414,13 +495,13 @@ void CalculateFFT() {
 
 
 void RenderFFTVis() {
-  rectMode(CENTER);
+  fxVisCanvas.rectMode(CENTER);
   //noStroke();
   //noFill();
   if (!strokeBars) {
-    noStroke();
+    fxVisCanvas.noStroke();
   }
-  strokeWeight(1);
+  fxVisCanvas.strokeWeight(1);
   color c;
 
   totalVolume = 0;
@@ -460,18 +541,18 @@ void RenderFFTVis() {
     }
 
     if (fillBars) {
-      fill(c, 20+constrain((val-5)*0.7, 0, 200));
+      fxVisCanvas.fill(c, 20+constrain((val-5)*0.7, 0, 200));
       if (strokeBars) {
-        stroke(c, 40+constrain((val-5)*0.6, 0, 200));
+        fxVisCanvas.stroke(c, 40+constrain((val-5)*0.6, 0, 200));
       }
     } else {
-      noFill();
+      fxVisCanvas.noFill();
       if (strokeBars) {
-        stroke(c, 60+constrain((val-5)*1.2, 0, 190));
+        fxVisCanvas.stroke(c, 60+constrain((val-5)*1.2, 0, 190));
       }
     }
 
-    rect(FFTXVis, height-FFTYVis-i*FFTdify, constrain(FFTvaluesVis[i]*2, 0, 600), FFTdify);
+    fxVisCanvas.rect(FFTXVis, height-FFTYVis-i*FFTdify, constrain(FFTvaluesVis[i]*2, 0, 600), FFTdify);
   }
 
   globalMoveSpeedMod = bassVolume/500;

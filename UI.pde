@@ -4,26 +4,34 @@ void mouseReleased() {
     if (B6.MouseOverButton()) {
       TabPlayer.mousePressed();
     }
-    if (B1.MouseOverButton()) {
-      showFFTHighlights = B1.toggle();
-    }
-    if (B2.MouseOverButton()) {
-      fillBars = B2.toggle();
-    }
-    if (B3.MouseOverButton()) {
-      strokeBars = B3.toggle();
-    }
-    if (B4.MouseOverButton()) {
-      showLights = B4.toggle();
-    }
-    if (B5.MouseOverButton()) {
-      showLightning = B5.toggle();
-    }
-    if (B7.MouseOverButton()) {
-      showParticles = B7.toggle();
-    }
-    if (B8.MouseOverButton()) {
-      colorNodes = B8.toggle();
+    if (millis() > menuSwitchMillis+100) {
+      if (B1.MouseOverButton()) {
+        showFFTHighlights = B1.toggle();
+      }
+      if (B2.MouseOverButton()) {
+        fillBars = B2.toggle();
+      }
+      if (B3.MouseOverButton()) {
+        strokeBars = B3.toggle();
+      }
+      if (B4.MouseOverButton()) {
+        showLights = B4.toggle();
+      }
+      if (B5.MouseOverButton()) {
+        showLightning = B5.toggle();
+      }
+      if (B7.MouseOverButton()) {
+        showParticles = B7.toggle();
+      }
+      if (B8.MouseOverButton()) {
+        colorNodes = B8.toggle();
+      }
+      if (B9.MouseOverButton()) {
+        showLaserBeams = B9.toggle();
+      }
+      if (B10.MouseOverButton()) {
+        showPostFx = B10.toggle();
+      }
     }
   }
 }
@@ -70,6 +78,8 @@ void drawMenu() {
     B6.run();
     B7.run();
     B8.run();
+    B9.run();
+    B10.run();
 
     menuVisCanvas.popMatrix();
   }

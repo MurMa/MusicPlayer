@@ -45,7 +45,6 @@ public class MusicPlayerV18 extends PApplet {
 
 
 ControlP5 cp5;
-PostFX fx;
 
 Minim minim;
 AudioPlayer player;
@@ -64,7 +63,7 @@ int resy;
 //int yi = 15;
 //int y = ys;
 
-String mypath = "";
+String mypath = null;
 
 String savefilespath = "/SongData/";
 
@@ -76,6 +75,8 @@ int progress = 0;
 int calcpos = 0;
 boolean isCalculating = false;
 boolean ignoreExistingData;
+
+long menuSwitchMillis;
 
 StringList SearchResults = new StringList();
 
@@ -197,10 +198,8 @@ public void setup()
 
   
   frameRate(60);
-  
-  //surface.setResizable(true);
 
-  fx = new PostFX(this);
+  //surface.setResizable(true);
 
   halfwidth = width/2;
   halfheight = height/2;
@@ -243,19 +242,27 @@ public void setup()
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
   if (loadStrings("MyDirectory.txt") == null) {
-    selectFolder("Select a folder to process:", "folderSelected");
-    while (mypath.length()<1) {
-      delay(1);
-    }
+    saveStrings("MyDirectory.txt", new String[]{"directory"});
   } else {
     String temp[] = loadStrings("MyDirectory.txt");
-    mypath = temp[0];
+    if (temp.length > 0) {
+      if (!temp[0].equals("directory")) {
+        mypath = temp[0];
+      }
+    }
   }
 
-  println("Start to read files");
-
-  readFilesInDirectory();
-  filterfilenames();
+  filenames = new String[]{};
+  if (mypath != null) {
+    println("Start to read files");
+    readFilesInDirectory();
+    filterfilenames();
+  } else {
+    mypath = "";
+  }
+  if (filenames.length == 0) {
+    filenames = new String[]{"exampleSong.mp3"};
+  }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -265,15 +272,20 @@ public void setup()
   volume = 50;
   gain = map(volume, 0, 100, lowestGain, highestGain);
 
-  player = minim.loadFile(mypath + filenames[0]);
-  player.pause();
-  meta = player.getMetaData();
+  if (mypath != null) {
+    player = minim.loadFile(mypath + filenames[0]);
+  } 
 
-  player.shiftGain(player.getGain(), gain, 300);
+  if (player != null) {
+    player.pause();
+    meta = player.getMetaData();
 
-  posvalue = 0;
-  possteps = player.length()/posdivide;
+    player.shiftGain(player.getGain(), gain, 300);
 
+
+    posvalue = 0;
+    possteps = player.length()/posdivide;
+  }
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -613,10 +625,10 @@ public void updateMetaInfo() {
    text("Album: " + meta.album(), 5, y+=yi);
    text("Genre: " + meta.genre(), 5, y+=yi);
    */
-  if (meta.title().length() > 0) {
+  if (meta != null && meta.title().length() > 0) {
     //text(meta.title(), halfwidth, 370);
     TxtLSongTitle.setText(meta.title());
-  } else {
+  } else if (filenames.length > filepos) {
     altTitle = filenames[filepos].substring(0, filenames[filepos].length()-4);
     //text(altTitle, halfwidth, 370);
     TxtLSongTitle.setText(altTitle);
@@ -825,9 +837,9 @@ public void drawBackground() {
       bgNodes[i][j].run();
     }
   }
-  filter(blurHor);
-  filter(blurVert);
-  rectMode(CORNER);
+  fxVisCanvas.filter(blurHor);
+  fxVisCanvas.filter(blurVert);
+  fxVisCanvas.rectMode(CORNER);
 }
 
 public void setBackgroundColorsByIndex(int index) {
@@ -930,14 +942,14 @@ class BackgroundNode {
     r *= curBright;
     g *= curBright;
     b *= curBright;
-    fill(r, g, b, 170);
-    noStroke();
+    fxVisCanvas.fill(r, g, b, 170);
+    fxVisCanvas.noStroke();
 
     //rectMode(CORNER);
     //rect(posX, posY, dim, dim);
 
-    ellipseMode(CORNER);
-    ellipse(posX, posY, dim, dim);
+    fxVisCanvas.ellipseMode(CORNER);
+    fxVisCanvas.ellipse(posX, posY, dim, dim);
   }
 
   public void setColorAndFadeTo(int next, float speed) {
@@ -1157,7 +1169,7 @@ color c;
 
 public void drawPerlinLine(float time, float phaseDif, int innerRad, int outerRad, int col, float jitter, int offset) {
   float p1 = map(noise(lineTime*10+offset), 0.2f, 0.7f, -1, 1);
-  strokeWeight(1);
+  fxVisCanvas.strokeWeight(1);
   drawLine(time, phaseDif+p1*jitter, innerRad, outerRad, col);
 }
 
@@ -1177,7 +1189,7 @@ public void changePhaseDif() {
 }
 
 public void fadePhaseDif() {
-  float bonusSpeed = (curSecVol+lastSecVol)*0.000000002f;
+  float bonusSpeed = lastSecVol*0.000000004f;
   float fadeSpeed = 0.0010f+bonusSpeed;
   if (linePhaseFadePos > 1 && linePhaseFadePos != 10) {
     linePhaseFadePos = 10;
@@ -1188,26 +1200,42 @@ public void fadePhaseDif() {
   }
 }
 
+public void fadeLineSpeed() {
+  float bonusSpeed = lastSecVol*0.000000001f;
+  float fadeSpeed = 0.0000005f+bonusSpeed;
+  if (abs(lineSpeed - targetLineSpeed) < fadeSpeed) {
+    lineSpeed = targetLineSpeed;
+    return;
+  }
+  if (lineSpeed > targetLineSpeed) {
+    lineSpeed -= fadeSpeed;
+  } else if (lineSpeed < targetLineSpeed) {
+    lineSpeed += fadeSpeed;
+  }
+}
+
+//Single Laser line
 public void drawLine(float time, float phaseDif, int innerRad, int outerRad, int col) {
   float x1 = cos(time)*innerRad;
   float y1 = sin(time)*innerRad;
   float x2 = cos(time-phaseDif)*outerRad;
   float y2 = sin(time-phaseDif)*outerRad;
-  stroke(col);
-  line(width/2+x2, height/2+y2, width/2+x1, height/2+y1);
+  fxVisCanvas.stroke(col);
+  fxVisCanvas.line(width/2+x2, height/2+y2, width/2+x1, height/2+y1);
 }
 
+//Bunch of laser lines
 public void drawLines() {
   fadePhaseDif();
-  float lineSpeed;
+  fadeLineSpeed();
 
-  float bonusSpeed = (curSecVol+lastSecVol)*0.000000005f;
-  lineSpeed = 0.001f+bonusSpeed;
+  float bonusSpeed = lastSecVol*0.00000002f;
+  targetLineSpeed = 0.001f+bonusSpeed;
   lineTime += lineSpeed;
   int innerRad = 80;
   int outerRad = height+200;
 
-  float bonusFac = (curSecVol+lastSecVol)*0.000001f;
+  float bonusFac = lastSecVol*0.000002f;
   //println(bonusFac);
   float stren = FFTvaluesVis[1];
   float flashFac = constrain((stren/100)+bonusFac, 0.25f, 2);
@@ -1229,49 +1257,52 @@ public void drawLines() {
   //println(p1);
   int lineCount = 10;
 
-  strokeWeight(3);
+  fxVisCanvas.strokeWeight(3);
   drawLine(lineTime, linePhaseDif, innerRad, outerRad, col);
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  strokeWeight(3);
+  fxVisCanvas.strokeWeight(3);
   drawLine(lineTime+HALF_PI, linePhaseDif, innerRad, outerRad, col);
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime+HALF_PI, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  strokeWeight(3);
+  fxVisCanvas.strokeWeight(3);
   drawLine(lineTime+PI, linePhaseDif, innerRad, outerRad, col);
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime+PI, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  strokeWeight(3);
+  fxVisCanvas.strokeWeight(3);
   drawLine(lineTime-HALF_PI, linePhaseDif, innerRad, outerRad, col);
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime-HALF_PI, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  
-  drawEllipseFade(new PVector(width/2, height/2), 1200, 40, color(0, 20));
+
+  //So that the laser beams fade out
+  drawEllipseFade(new PVector(width/2, height/2), 1600, 40, 40.0f);
 }
 
-public void drawEllipseFade(PVector o, float size, int steps, int col) {
-  ellipseMode(CENTER);
+public void drawEllipseFade(PVector o, float size, int steps, float endalpha) {
+  fxVisCanvas.ellipseMode(CENTER);
   PVector origin = o.copy();
-  fill(col);
-  noStroke();
-  float dif = size / steps;
+  fxVisCanvas.noStroke();
+  float difSize = size / steps;
+  float difAlpha = endalpha / steps;
   for (int i = 0; i<steps; i++) {
-    ellipse(origin.x, origin.y, i*dif, i*dif);
+    fxVisCanvas.fill(0, endalpha-(difAlpha*i));
+    fxVisCanvas.ellipse(origin.x, origin.y, i*difSize, i*difSize);
   }
 }
 
 public void drawLight(PVector o, int amount) {
+  fxVisCanvas.ellipseMode(CENTER);
   PVector origin = o.copy();
   amount = PApplet.parseInt(constrain(amount*1.4f, 0, 60));
-  fill(50+amount*amount/18, 200-amount*amount/18, amount+50, 120-constrain(amount*2, 0, 119));
-  noStroke();
+  fxVisCanvas.fill(50+amount*amount/18, 200-amount*amount/18, amount+50, 120-constrain(amount*2, 0, 119));
+  fxVisCanvas.noStroke();
   for (int i = 0; i< amount; i++) {
-    ellipse(origin.x, origin.y, i*i/6, i*i/65);
-    ellipse(origin.x, origin.y, i*i/5, i/9);
+    fxVisCanvas.ellipse(origin.x, origin.y, i*i/6, i*i/65);
+    fxVisCanvas.ellipse(origin.x, origin.y, i*i/5, i/9);
   }
 }
 
@@ -1288,33 +1319,33 @@ public void drawLightning(PVector o, int amount) {
     if (bolts > 0) {
       difA = 250/bolts;
     }
-    rectMode(CENTER);
+    fxVisCanvas.rectMode(CENTER);
 
     PVector P2 = new PVector(random(0, 20), random(-5, 5));
-    pushMatrix();
-    translate(P1.x, P1.y);
+    fxVisCanvas.pushMatrix();
+    fxVisCanvas.translate(P1.x, P1.y);
     for (int i = 0; i< bolts; i++) {
-      stroke(bolts*bS, bolts*bS, bolts*bS, constrain(maxA-i*i/10*difA, 0, 255));
-      line(0, 0, P2.x, P2.y);
+      fxVisCanvas.stroke(bolts*bS, bolts*bS, bolts*bS, constrain(maxA-i*i/10*difA, 0, 255));
+      fxVisCanvas.line(0, 0, P2.x, P2.y);
       //ellipse(0,0,2,2);
 
-      translate(P2.x, P2.y);
+      fxVisCanvas.translate(P2.x, P2.y);
       P2 = new PVector(random(0, 20), random(-5, 5));
     }
-    popMatrix();
+    fxVisCanvas.popMatrix();
 
     P2 = new PVector(random(-20, 0), random(-5, 5));
-    pushMatrix();
-    translate(P1.x, P1.y);
+    fxVisCanvas.pushMatrix();
+    fxVisCanvas.translate(P1.x, P1.y);
     for (int i = 0; i< bolts; i++) {
-      stroke(bolts*bS, bolts*bS, bolts*bS, constrain(maxA-i*i/10*difA, 0, 255));
-      line(0, 0, P2.x, P2.y);
+      fxVisCanvas.stroke(bolts*bS, bolts*bS, bolts*bS, constrain(maxA-i*i/10*difA, 0, 255));
+      fxVisCanvas.line(0, 0, P2.x, P2.y);
       //ellipse(0,0,2,2);
 
-      translate(P2.x, P2.y);
+      fxVisCanvas.translate(P2.x, P2.y);
       P2 = new PVector(random(-20, 0), random(-5, 5));
     }
-    popMatrix();
+    fxVisCanvas.popMatrix();
   }
 }
 
@@ -1338,14 +1369,15 @@ public void RenderLightning() {
 
 
 public void controlEvent(ControlEvent theControlEvent) {
-  if (curTabIndex != 4 || (curTabIndex == 4 && B6.MouseOverButton())) {
-    if (theControlEvent.isTab()) {
+  if (curTabIndex != 4 || (curTabIndex == 4 && B6 != null && B6.MouseOverButton())) {
+    if (theControlEvent != null && theControlEvent.isTab()) {
       curTabIndex = theControlEvent.getTab().getId();
-      switch(theControlEvent.getTab().getId()) {
+      switch(curTabIndex) {
       case 1: //SongList
         RenderDia = false;
         RenderFFT = false;
         BuQuit.moveTo(TabSonglist);
+        menuSwitchMillis = millis();
         break;
       case 2: //Player
         RenderDia = true;
@@ -1353,21 +1385,24 @@ public void controlEvent(ControlEvent theControlEvent) {
           RenderFFT = true;
         }
         BuQuit.moveTo(TabPlayer);
+        menuSwitchMillis = millis();
         break;
       case 3: //Settings
         RenderDia = false;
         RenderFFT = false;
         BuQuit.moveTo(TabSettings);
+        menuSwitchMillis = millis();
         break;
       case 4: //Visualizer        
         visualizerAnalyseSong();
         //visualizerCheckLiveMode();
         RenderDia = false;
         RenderFFT = false;
+        menuSwitchMillis = millis();
         break;
       }
     }
-    if (theControlEvent.isFrom(CheckSettings2)) {
+    if (theControlEvent != null && theControlEvent.isFrom(CheckSettings2)) {
       float[]a = CheckSettings2.getArrayValue();
       if (a[0] == 1) {
         goIdle= true;
@@ -1383,7 +1418,7 @@ public void controlEvent(ControlEvent theControlEvent) {
       println("Idle: " + goIdle);
       println("---");
     }
-    if (theControlEvent.isFrom(MyBGColorPicker)) {
+    if (theControlEvent != null && theControlEvent.isFrom(MyBGColorPicker)) {
       int col = MyBGColorPicker.getRGB();
       BGcolor = col;
       String[] temp = new String[1];
@@ -1392,41 +1427,49 @@ public void controlEvent(ControlEvent theControlEvent) {
     }
 
     if (GroupTheme.isVisible()) {
-      if (theControlEvent.isFrom(BackgroundCP)) {
+      if (theControlEvent != null && theControlEvent.isFrom(BackgroundCP) && theControlEvent.arrayValue().length == 4) {
         int r = PApplet.parseInt(theControlEvent.getArrayValue(0));
         int g = PApplet.parseInt(theControlEvent.getArrayValue(1));
         int b = PApplet.parseInt(theControlEvent.getArrayValue(2));
         int a = PApplet.parseInt(theControlEvent.getArrayValue(3));
         int col = color(r, g, b, a);
         CBackground = col;
-        SlThemeExample.setColorBackground(col);
+        if (SlThemeExample != null) {
+          SlThemeExample.setColorBackground(col);
+        }
       }
-      if (theControlEvent.isFrom(ForegroundCP)) {
+      if (theControlEvent != null && theControlEvent.isFrom(ForegroundCP) && theControlEvent.arrayValue().length == 4) {
         int r = PApplet.parseInt(theControlEvent.getArrayValue(0));
         int g = PApplet.parseInt(theControlEvent.getArrayValue(1));
         int b = PApplet.parseInt(theControlEvent.getArrayValue(2));
         int a = PApplet.parseInt(theControlEvent.getArrayValue(3));
         int col = color(r, g, b, a);
         CForeground = col;
-        SlThemeExample.setColorForeground(col);
+        if (SlThemeExample != null) {
+          SlThemeExample.setColorForeground(col);
+        }
       }
-      if (theControlEvent.isFrom(ActiveCP)) {
+      if (theControlEvent != null && theControlEvent.isFrom(ActiveCP) && theControlEvent.arrayValue().length == 4) {
         int r = PApplet.parseInt(theControlEvent.getArrayValue(0));
         int g = PApplet.parseInt(theControlEvent.getArrayValue(1));
         int b = PApplet.parseInt(theControlEvent.getArrayValue(2));
         int a = PApplet.parseInt(theControlEvent.getArrayValue(3));
         int col = color(r, g, b, a);
         CActive = col;
-        SlThemeExample.setColorActive(col);
+        if (SlThemeExample != null) {
+          SlThemeExample.setColorActive(col);
+        }
       }
-      if (theControlEvent.isFrom(LabelCP)) {
+      if (theControlEvent != null && theControlEvent.isFrom(LabelCP) && theControlEvent.arrayValue().length == 4) {
         int r = PApplet.parseInt(theControlEvent.getArrayValue(0));
         int g = PApplet.parseInt(theControlEvent.getArrayValue(1));
         int b = PApplet.parseInt(theControlEvent.getArrayValue(2));
         int a = PApplet.parseInt(theControlEvent.getArrayValue(3));
         int col = color(r, g, b, a);
         CLabel = col;
-        SlThemeExample.setColorLabel(col);
+        if (SlThemeExample != null) {
+          SlThemeExample.setColorLabel(col);
+        }
       }
     }
   }
@@ -1458,7 +1501,9 @@ public void No() {
 
 public void RandomSong() {
   filepos = PApplet.parseInt(random(0, filenames.length));
-  nameLoadSong(filenames[filepos]);
+  if (filenames.length > filepos) {
+    nameLoadSong(filenames[filepos]);
+  }
 }
 
 
@@ -1485,7 +1530,9 @@ public void LastSong() {
 public void ChSettings(float[]a ) {
   if (a[0] == 1) {
     CalcDia= true;
-    loadSongDiagram(filenames[filepos]);
+    if (filenames.length > filepos) {
+      loadSongDiagram(filenames[filepos]);
+    }
   } else {
     CalcDia= false;
     spectra = new byte[0];
@@ -1858,6 +1905,7 @@ public void toggleconsole(boolean state) {
 }
 
 
+
 public void checkfilestatus() {
   if (loadStrings("Songlist.txt") == null) {
     savefilestatus();
@@ -2062,7 +2110,7 @@ public void InitializeGUI() {
     .setId(3)
     ;
   TabSettings.getCaptionLabel().setFont(CtrRaleway);
-  
+
   TabVisualizer = cp5.addTab("Visualizer")
     .setHeight(40)
     .setWidth(150)
@@ -2231,22 +2279,13 @@ public void InitializeGUI() {
     .setSpacingColumn(100)
     .setSpacingRow(20)
     .addItem("Draw Graphs", 0)
-    .addItem("Draw Spectrum", 0)
+    .addItem("Draw Frequency Spectrum", 0)
     .addItem("Go Only Spectrum", 0)
     ;
-  if (RenderFFT) {
-    CheckSettings.activate("Draw Frequency Spectrum");
-  }
-  if (CalcDia) {
-    CheckSettings.activate("Draw Graphs");
-  }
-  if (goOnlyFFT) {
-    CheckSettings.activate("Go Only Spectrum");
-  }
   CheckSettings.getItem(0).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
   CheckSettings.getItem(1).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
   CheckSettings.getItem(2).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
-  
+
   CtrRaleway.setSize(16);
   CheckVisSettings = cp5.addCheckBox("ChVisSettings")
     .setPosition(halfwidth-300, 370)
@@ -2269,12 +2308,7 @@ public void InitializeGUI() {
     .addItem("Go Idle", 0)
     .addItem("Go Eco", 0)
     ;
-  if (goIdle) {
-    CheckSettings2.activate("Go Idle");
-  }
-  if (goEco) {
-    CheckSettings2.activate("Go Eco");
-  }
+
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2357,7 +2391,6 @@ public void InitializeGUI() {
    */
   CtrRaleway.setSize(16);
   MyBGColorPicker = cp5.addColorWheel(cp5, "BGCP")
-    .setRGB(BGcolor)
     .setPosition(halfwidth-350+40, halfheight-250-10+40)
     .setVisible(false);
   ;
@@ -2486,27 +2519,27 @@ public void InitializeGUI() {
   ////////////////////////////////////////////////////////////////////////////////////////////////////
   /*
   CtrRaleway.setSize(16);
-  TogConsole = cp5.addToggle("toggleconsole")
-    .setPosition(30, 320)
-    .setSize(140, 40)
-    .setCaptionLabel("console")
-    ;
-  TogConsole.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
-
-  CtrRaleway.setSize(16);
-  consoleText = cp5.addTextarea("console")
-    .setPosition(200, 100)
-    .setSize(850, 400)
-    .setLineHeight(15)
-    .setFont(CtrRaleway)
-    .setMoveable(true) 
-    .setTab(TabSettings)
-    ;
-  consoleText.hide();
-  consoleText.clear();
-  console = cp5.addConsole(consoleText);
-  console.pause();
-*/
+   TogConsole = cp5.addToggle("toggleconsole")
+   .setPosition(30, 320)
+   .setSize(140, 40)
+   .setCaptionLabel("console")
+   ;
+   TogConsole.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
+   
+   CtrRaleway.setSize(16);
+   consoleText = cp5.addTextarea("console")
+   .setPosition(200, 100)
+   .setSize(850, 400)
+   .setLineHeight(15)
+   .setFont(CtrRaleway)
+   .setMoveable(true) 
+   .setTab(TabSettings)
+   ;
+   consoleText.hide();
+   consoleText.clear();
+   console = cp5.addConsole(consoleText);
+   console.pause();
+   */
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
   CtrRaleway.setSize(16);
@@ -2680,23 +2713,43 @@ public void InitializeGUI() {
 
   setConsoleStyle();
 
-
-
-
+  if (RenderFFT) {
+    CheckSettings.activate("Draw Frequency Spectrum");
+  }
+  if (CalcDia) {
+    CheckSettings.activate("Draw Graphs");
+  }
+  if (goOnlyFFT) {
+    CheckSettings.activate("Go Only Spectrum");
+  }
+  if (goIdle) {
+    CheckSettings2.activate("Go Idle");
+  }
+  if (goEco) {
+    CheckSettings2.activate("Go Eco");
+  }
+  if (liveModeVis) {
+    CheckVisSettings.activate("Live Mode");
+  }
   if (TogNightMode.getState() == true) {
     NMode(true);
   } 
+  MyBGColorPicker.setRGB(BGcolor);
 
 
   if (CalcDia) {
-    loadSongDiagram(filenames[filepos]);
-    renderSongDiagram();
+    if (filenames.length > filepos) {
+      loadSongDiagram(filenames[filepos]);
+      renderSongDiagram();
+    }
   }
 
   updateMetaInfo();
-  playerlengthsec = PApplet.parseInt((player.length() / 1000) % 60);
-  playerlengthmin = PApplet.parseInt((player.length() / 60000) % 60);
-  possteps = player.length()/posdivide;
+  if (player != null) {
+    playerlengthsec = PApplet.parseInt((player.length() / 1000) % 60);
+    playerlengthmin = PApplet.parseInt((player.length() / 60000) % 60);
+    possteps = player.length()/posdivide;
+  }
   SlPosition.setRange(0, possteps);
   SlPosition.getCaptionLabel().align(ControlP5.RIGHT, ControlP5.BOTTOM_OUTSIDE);
 }
@@ -2713,14 +2766,15 @@ public void InitializeGUI() {
 public void setConsoleStyle() {
   /*
   consoleText.setColor(color(0));
-  consoleText.setColorBackground(color(255, 240));
-  consoleText.setColorForeground(color(100));
-  consoleText.setColorActive(color(200));
-  consoleText.setScrollBackground(color(80)); 
-  consoleText.setScrollForeground(color(150)); 
-  consoleText.setScrollActive(color(30));
-  */
+   consoleText.setColorBackground(color(255, 240));
+   consoleText.setColorForeground(color(100));
+   consoleText.setColorActive(color(200));
+   consoleText.setScrollBackground(color(80)); 
+   consoleText.setScrollForeground(color(150)); 
+   consoleText.setScrollActive(color(30));
+   */
 }
+
 class Node {
 
   int band;
@@ -2785,7 +2839,7 @@ class Node {
   }
 
   public void update() {
-    size = val * (band/35+0.6f) * 1.2f;
+    size = val * (band/30+0.6f) * 1.2f;
     size = constrain(size, 0, 300);
     if (size > 60) {
       if (showParticles) {
@@ -2801,27 +2855,27 @@ class Node {
 
     for (int i = 0; i<connections.length; i++) {
       float combVal = ((val/10)*(connections[i].val/10))*0.1f;
-      stroke(255, combVal*combVal);
-      line(pos.x, pos.y, connections[i].pos.x, connections[i].pos.y);
+      fxVisCanvas.stroke(255, combVal*combVal);
+      fxVisCanvas.line(pos.x, pos.y, connections[i].pos.x, connections[i].pos.y);
     }
 
     int c = color(FFTColorVis);
-
-    c = fittingBackgroundVisCol;
-
+    if (colorNodes) {
+      c = fittingBackgroundVisCol;
+    }
     if (fillBars) {
-      fill(c, 0+constrain((val-5)*1.2f, 0, 155));
+      fxVisCanvas.fill(c, 0+constrain((val-5)*1.2f, 0, 155));
       if (strokeBars) {
-        stroke(c, 0+constrain((val-5)*1.2f, 0, 100));
+        fxVisCanvas.stroke(c, 0+constrain((val-5)*1.2f, 0, 100));
       }
     } else {
-      noFill();
+      fxVisCanvas.noFill();
       if (strokeBars) {
-        stroke(c, 20+constrain((val-5)*1.2f, 0, 100));
+        fxVisCanvas.stroke(c, 20+constrain((val-5)*1.2f, 0, 100));
       }
     }
 
-    ellipse(pos.x, pos.y, size, size);
+   fxVisCanvas.ellipse(pos.x, pos.y, size, size);
   }
 
   public void addConnection(int index, Node n) {
@@ -2889,23 +2943,34 @@ public void mouseReleased() {
     if (B6.MouseOverButton()) {
       TabPlayer.mousePressed();
     }
-    if (B1.MouseOverButton()) {
-      showFFTHighlights = B1.toggle();
-    }
-    if (B2.MouseOverButton()) {
-      fillBars = B2.toggle();
-    }
-    if (B3.MouseOverButton()) {
-      strokeBars = B3.toggle();
-    }
-    if (B4.MouseOverButton()) {
-      showLights = B4.toggle();
-    }
-    if (B5.MouseOverButton()) {
-      showLightning = B5.toggle();
-    }
-    if (B7.MouseOverButton()) {
-      showParticles = B7.toggle();
+    if (millis() > menuSwitchMillis+100) {
+      if (B1.MouseOverButton()) {
+        showFFTHighlights = B1.toggle();
+      }
+      if (B2.MouseOverButton()) {
+        fillBars = B2.toggle();
+      }
+      if (B3.MouseOverButton()) {
+        strokeBars = B3.toggle();
+      }
+      if (B4.MouseOverButton()) {
+        showLights = B4.toggle();
+      }
+      if (B5.MouseOverButton()) {
+        showLightning = B5.toggle();
+      }
+      if (B7.MouseOverButton()) {
+        showParticles = B7.toggle();
+      }
+      if (B8.MouseOverButton()) {
+        colorNodes = B8.toggle();
+      }
+      if (B9.MouseOverButton()) {
+        showLaserBeams = B9.toggle();
+      }
+      if (B10.MouseOverButton()) {
+        showPostFx = B10.toggle();
+      }
     }
   }
 }
@@ -2929,19 +2994,20 @@ public void keyReleased() {
 }
 
 public void drawMenu() {
+  menuVisCanvas.beginDraw();
   if (menuY > -100) {
-    filter(blur);
-    filter(blur);
-    rectMode(CORNER);
-    noStroke();
-    pushMatrix();
-    translate(0, menuY);
+    menuVisCanvas.filter(blur);
+    menuVisCanvas.filter(blur);
+    menuVisCanvas.rectMode(CORNER);
+    menuVisCanvas.noStroke();
+    menuVisCanvas.pushMatrix();
+    menuVisCanvas.translate(0, menuY);
 
-    fill(180, 220, 255, 150);
-    rect(0, 0, width, 100);
+    menuVisCanvas.fill(180, 220, 255, 150);
+    menuVisCanvas.rect(0, 0, width, 100);
 
-    fill(50, 100, 150, 200);
-    rect(0, 100, width, 5);
+    menuVisCanvas.fill(50, 100, 150, 200);
+    menuVisCanvas.rect(0, 100, width, 5);
 
     B1.run();
     B2.run();
@@ -2950,9 +3016,20 @@ public void drawMenu() {
     B5.run();
     B6.run();
     B7.run();
+    B8.run();
+    B9.run();
+    B10.run();
 
-    popMatrix();
+    menuVisCanvas.popMatrix();
   }
+  if (menuY < 0 && menuY > -100) {
+    menuVisCanvas.rectMode(CORNER);
+    menuVisCanvas.noStroke();
+
+    menuVisCanvas.fill(0, 255);
+    menuVisCanvas.rect(0, menuY+90, width, 25);
+  }
+  menuVisCanvas.endDraw();
 }
 
 public void showMenu() {
@@ -3064,35 +3141,35 @@ class MyButton {
   }
 
   public void display() {
-    stroke(0);
-    strokeWeight(1);
+    menuVisCanvas.stroke(0);
+    menuVisCanvas.strokeWeight(1);
 
     if (gradients) {
-      stroke(lerpColor(colorDea, color(0), 0.5f));
-      noFill();
-      rect (position.x-1, position.y-1, dimensions.x+2, dimensions.y+2);
+      menuVisCanvas.stroke(lerpColor(colorDea, color(0), 0.5f));
+      menuVisCanvas.noFill();
+      menuVisCanvas.rect (position.x-1, position.y-1, dimensions.x+2, dimensions.y+2);
       for (int i = 0; i<=dimensions.y; i++) {
-        stroke(lerpColor(colorAct, btncolor, i/dimensions.y));
-        line(position.x, position.y+i, position.x+dimensions.x, position.y+i);
+        menuVisCanvas.stroke(lerpColor(colorAct, btncolor, i/dimensions.y));
+        menuVisCanvas.line(position.x, position.y+i, position.x+dimensions.x, position.y+i);
       }
     } else {
-      fill(btncolor);
-      rect(position.x, position.y, dimensions.x, dimensions.y);
+      menuVisCanvas.fill(btncolor);
+      menuVisCanvas.rect(position.x, position.y, dimensions.x, dimensions.y);
     }
     if (disabled) {
-      fill(0, 100);
-      rect(position.x, position.y, dimensions.x, dimensions.y);
+      menuVisCanvas.fill(0, 100);
+      menuVisCanvas.rect(position.x, position.y, dimensions.x, dimensions.y);
     }
 
-    textAlign(CENTER, CENTER);
-    textFont(Font);
-    fill(0);
+    menuVisCanvas.textAlign(CENTER, CENTER);
+    menuVisCanvas.textFont(Font);
+    menuVisCanvas.fill(0);
     if (secondLabel.length() > 0) {
-      text(label, position.x+dimensions.x/2, position.y+dimensions.y/3.4f);
-      fill(0, 200);
-      text(secondLabel, position.x+dimensions.x/2, position.y+dimensions.y/1.6f);
+      menuVisCanvas.text(label, position.x+dimensions.x/2, position.y+dimensions.y/3.4f);
+      menuVisCanvas.fill(0, 200);
+      menuVisCanvas.text(secondLabel, position.x+dimensions.x/2, position.y+dimensions.y/1.6f);
     } else {
-      text(label, position.x+dimensions.x/2, position.y+dimensions.y/2.4f);
+      menuVisCanvas.text(label, position.x+dimensions.x/2, position.y+dimensions.y/2.4f);
     }
   }
 
@@ -3226,27 +3303,27 @@ class MyToggle {
   }
 
   public void display() {
-    strokeWeight(1);
-    stroke(255, 200);
+    menuVisCanvas.strokeWeight(1);
+    menuVisCanvas.stroke(255, 200);
     if (value) {
       btncolor = colorAct;
     } else {
       btncolor = colorDea;
     }
-    fill(btncolor, btnAlpha);
-    rect (position.x, position.y, dimensions.x, dimensions.y);
+    menuVisCanvas.fill(btncolor, btnAlpha);
+    menuVisCanvas.rect (position.x, position.y, dimensions.x, dimensions.y);
     if (disabled) {
-      fill(0, 50);
-      rect(position.x, position.y, dimensions.x, dimensions.y);
+      menuVisCanvas.fill(0, 50);
+      menuVisCanvas.rect(position.x, position.y, dimensions.x, dimensions.y);
     }
-    textFont(Font);
-    fill(fontColor);
+    menuVisCanvas.textFont(Font);
+    menuVisCanvas.fill(fontColor);
     if (labelOutside) {
-      textAlign(CORNER, CENTER);
-      text(label, position.x+dimensions.x+20, position.y+dimensions.y/2.4f);
+      menuVisCanvas.textAlign(CORNER, CENTER);
+      menuVisCanvas.text(label, position.x+dimensions.x+20, position.y+dimensions.y/2.4f);
     } else {
-      textAlign(CENTER, CENTER);
-      text(label, position.x+dimensions.x/2, position.y+dimensions.y/2.4f);
+      menuVisCanvas.textAlign(CENTER, CENTER);
+      menuVisCanvas.text(label, position.x+dimensions.x/2, position.y+dimensions.y/2.4f);
     }
   }
 
@@ -3286,10 +3363,9 @@ class MyToggle {
 
 
 
+
 float[] FFTvaluesVis;
 float[] FFToldvaluesVis;
-
-boolean showFFTHighlights;
 
 int FFTColorVis;
 int FFTHighlight1Vis;
@@ -3303,17 +3379,25 @@ float FFTdify;
 float FFTsmooth;
 
 float t;
+//Laser beams
 float lineTime;
+float lineSpeed;
+float targetLineSpeed;
+float lastPhaseDif;
 float linePhaseDif;
 float linePhaseFadePos;
-float lastPhaseDif;
 float targetPhaseDif;
 
 FFT fftVis;
 
+//Current color theme
 int backgroundVisCol;
 int fittingBackgroundVisCol;
+
+//Shader for blurring when in menu
 PShader blur;
+
+//Shaders for blurring background Nodes
 PShader blurHor;
 PShader blurVert;
 
@@ -3329,17 +3413,23 @@ float totalVolume;
 float bassVolume;
 float globalMoveSpeedMod;
 
+//Calculating overall song volume in one second
 float iterCount;
 float curSecVol;
 float lastSecVol;
 
 int bassStreakCounter;
 
+//Variables to set with toggle buttons
+boolean showFFTHighlights;
 boolean showLightning;
 boolean showLights;
 boolean fillBars;
 boolean strokeBars;
 boolean showParticles;
+boolean colorNodes;
+boolean showLaserBeams;
+boolean showPostFx;
 
 PFont RalewayS;
 PFont RalewayM;
@@ -3352,9 +3442,16 @@ MyToggle B4;
 MyToggle B5;
 MyButton B6;
 MyToggle B7;
+MyToggle B8;
+MyToggle B9;
+MyToggle B10;
 
 AudioInput liveIn;
 boolean liveModeVis;
+
+int phaseDiffThreshold;
+int shockwaveTriggerThreshold;
+int changeColorThemeThreshold;
 
 float[][] spectraVisualizer;
 int[] bandCounter;
@@ -3367,16 +3464,26 @@ int[] standardNodeBands;
 int[] backgroundColors;
 int[] fittingBackgroundColors;
 
+PGraphics menuVisCanvas;
 PGraphics fxVisCanvas;
+PostFXSupervisor supervisor;
+BlurPass blurPass;
+BloomPass bloomPass;
+RGBSplitPass rgbSplitPass;
+BrightnessContrastPass brightnessContrastPass;
 
 public void setupVisualizer() {
 
   colorMode(RGB, 255);
 
+  menuVisCanvas = createGraphics(width, height, P2D);
   fxVisCanvas = createGraphics(width, height, P2D);
-  // compile shaders in setup
-  fx.preload(BloomPass.class);
-  //fx.preload(RGBSplitPass.class);
+  // create supervisor and load shaders
+  supervisor = new PostFXSupervisor(this);
+  blurPass = new BlurPass(this, 40, 100.0f, true);
+  bloomPass = new BloomPass(this, 0.6f, 20, 40.0f);
+  rgbSplitPass = new RGBSplitPass(this, 0);
+  brightnessContrastPass = new BrightnessContrastPass(this, 0.0f, 1.0f);
 
   lineTime = 0;
   linePhaseDif = 0;
@@ -3403,6 +3510,9 @@ public void setupVisualizer() {
   strokeBars = true;
   showFFTHighlights = true;
   showParticles = true;
+  colorNodes = true;
+  showLaserBeams = true;
+  showPostFx = true;
 
   FFTbarsVis = 25;
 
@@ -3430,14 +3540,14 @@ public void setupVisualizer() {
   textFont(RalewayM);
 
   PVector btnPos = new PVector(20, 25);
-  int btnDX = width/40;
-  int btnCount = 7;
+  int btnDX = width/50;
+  int btnCount = 10;
   PVector btnDim = new PVector((width-btnDX*btnCount)/btnCount, 50);
   PVector btnCurpos = btnPos.copy();
 
   B6 = new MyButton(btnCurpos, btnDim, "Back", color(200), color(100));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
-  B1 = new MyToggle(btnCurpos, btnDim, "FFT Highlights", showFFTHighlights, color(200, 255, 200), color(255, 200, 200));
+  B1 = new MyToggle(btnCurpos, btnDim, "Highlights", showFFTHighlights, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B2 = new MyToggle(btnCurpos, btnDim, "Fill Bars", fillBars, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
@@ -3448,6 +3558,12 @@ public void setupVisualizer() {
   B5 = new MyToggle(btnCurpos, btnDim, "Lightning", showLightning, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B7 = new MyToggle(btnCurpos, btnDim, "Particles", showParticles, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B8 = new MyToggle(btnCurpos, btnDim, "Color Nodes", colorNodes, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B9 = new MyToggle(btnCurpos, btnDim, "Laser Beams", showLaserBeams, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B10 = new MyToggle(btnCurpos, btnDim, "Post Fx", showPostFx, color(200, 255, 200), color(255, 200, 200));
 
   B1.setFont("Raleway", 24, true);
   B2.setFont("Raleway", 24, true);
@@ -3456,11 +3572,19 @@ public void setupVisualizer() {
   B5.setFont("Raleway", 24, true);
   B6.setFont("Raleway", 24, true);
   B7.setFont("Raleway", 24, true);
+  B8.setFont("Raleway", 24, true);
+  B9.setFont("Raleway", 24, true);
+  B10.setFont("Raleway", 24, true);
 
   particleSystem = new ParticleSystem();
 
   shockwaveSystem = new ShockwaveSystem();
   spawnShockwaveNextBeat = false;
+
+  //Thresholds: The higher, the bigger the change in overall volume change has to be in order to trigger the action
+  phaseDiffThreshold = 75000; //Laser angle change threshold
+  shockwaveTriggerThreshold = 140000;
+  changeColorThemeThreshold = 100000; //Color Theme (Background and Nodes color)
 
   setBackgroundColorsByIndex(0);
 
@@ -3508,20 +3632,45 @@ public void visualizerAnalyseSong() {
   }
 }
 
+public void setRgbSplitPassByBassLevel() {
+  float delta = FFTvaluesVis[1]*0.0045f;
+  delta = constrain(delta, 0, 2.5f);
+  //println("delta:",delta);
+  float minDelta = 0.1f;
+  if (delta > minDelta) {
+    rgbSplitPass.setDelta(delta*delta*100);
+  }
+}
+
+public void setContrastPassByVolumeLevel() {
+  float contrast = lastSecVol*0.000004f;
+  contrast = constrain(contrast*contrast+0.1f, 0, 2.5f);
+  //println("contrast:", contrast);
+  brightnessContrastPass.setContrast(contrast);
+}
+
 public void drawVisualizer() {
-  blendMode(BLEND);
-  //background(0);
-  rectMode(CORNER);
-  ellipseMode(CENTER);
-  fill(0, 150);
-  noStroke();
-  rect(0, 0, width, height);
+  fxVisCanvas.beginDraw();
+
+  fxVisCanvas.ellipseMode(CENTER);
+  fxVisCanvas.rectMode(CORNER);
+  fxVisCanvas.fill(0, 150);
+  fxVisCanvas.noStroke();
+  fxVisCanvas.rect(0, 0, width, height);
+
   t += 0.01f;
 
   CalculateFFT();
 
+  if (showPostFx) {
+    setRgbSplitPassByBassLevel();
+    setContrastPassByVolumeLevel();
+  }
+
   drawBackground();
-  drawLines();
+  if (showLaserBeams) {
+    drawLines();
+  }
 
   runRgbCube();
 
@@ -3535,18 +3684,17 @@ public void drawVisualizer() {
   if (showLights) {
     RenderLights();
   }
-  
-  fxVisCanvas.beginDraw();
+
+
   particleSystem.run();
-  fxVisCanvas.endDraw();
-  
+
   partcount = particleSystem.particles.size();
-  
+
   shockwaveSystem.run();
 
   RenderFFTVis();
 
-  ellipseMode(CENTER);
+  fxVisCanvas.ellipseMode(CENTER);
   for (int i = 0; i<nodes.length; i++) {
     nodes[i].setVal(FFTvaluesVis[nodes[i].getBand()]);
     nodes[i].run();
@@ -3559,23 +3707,31 @@ public void drawVisualizer() {
     hideMenu();
   }
 
-  textAlign(CORNER);
-  fill(255);
-  textFont(RalewayS);
-  text(frameRate, 10, 20);
-  text(partcount, 10, 40);
-  text(bassStreakCounter, 10, 60);
-  
-  /*
+  fxVisCanvas.textAlign(CORNER);
+  fxVisCanvas.fill(255);
+  fxVisCanvas.textFont(RalewayS);
+  fxVisCanvas.text(frameRate, 10, 20);
+  fxVisCanvas.text(partcount, 10, 40);
+  fxVisCanvas.text(bassStreakCounter, 10, 60);
+
+  fxVisCanvas.endDraw();
+
   blendMode(BLEND);
   image(fxVisCanvas, 0, 0);
+  if (menuY > -100) {
+    image(menuVisCanvas, 0, 0);
+  }
 
   blendMode(SCREEN);
-  fx.render(fxVisCanvas)
-    //.brightPass(0.5)
-    .blur(20,50)
-    //.bloom(0.5, 10, 20)
-    .compose();*/
+  supervisor.render(menuVisCanvas);
+  supervisor.render(fxVisCanvas);
+  if (menuY < -100 && showPostFx) {
+    supervisor.pass(bloomPass);
+    supervisor.pass(rgbSplitPass);
+    supervisor.pass(brightnessContrastPass);
+  }
+  supervisor.compose();
+  blendMode(BLEND);
 }
 
 
@@ -3587,17 +3743,20 @@ public float heightToFTTVal(float posY) {
 
 public void detectMoodChange() {
   iterCount++;
-  if (iterCount > 80) {
+  if (iterCount > 40) {
     iterCount = 0;
     float change = curSecVol - lastSecVol;
     //println("change to last sec: " + change);
-    if (abs(change) > 75000) {
+    if (abs(change) > phaseDiffThreshold) {
+      //Laser angle
       changePhaseDif();
     }
-    if (abs(change) > 100000) {
+    if (abs(change) > changeColorThemeThreshold) {
+      //Background and Nodes color
       changeColorScheme();
     }
-    if (abs(change) > 140000) {
+    if (abs(change) > shockwaveTriggerThreshold) {
+      //Shockwave trigger
       spawnShockwaveNextBeat = true;
     }
     lastSecVol = curSecVol;
@@ -3642,7 +3801,7 @@ public void checkShockwave() {
 
 public void checkBassStreak() {
   int minVal = 200;
-  int minStreak = 40;
+  int minStreak = 20;
   if (FFTvaluesVis[1] >= minVal) {
     bassStreakCounter++;
   } else {
@@ -3693,13 +3852,13 @@ public void CalculateFFT() {
 
 
 public void RenderFFTVis() {
-  rectMode(CENTER);
+  fxVisCanvas.rectMode(CENTER);
   //noStroke();
   //noFill();
   if (!strokeBars) {
-    noStroke();
+    fxVisCanvas.noStroke();
   }
-  strokeWeight(1);
+  fxVisCanvas.strokeWeight(1);
   int c;
 
   totalVolume = 0;
@@ -3739,18 +3898,18 @@ public void RenderFFTVis() {
     }
 
     if (fillBars) {
-      fill(c, 20+constrain((val-5)*0.7f, 0, 200));
+      fxVisCanvas.fill(c, 20+constrain((val-5)*0.7f, 0, 200));
       if (strokeBars) {
-        stroke(c, 40+constrain((val-5)*0.6f, 0, 200));
+        fxVisCanvas.stroke(c, 40+constrain((val-5)*0.6f, 0, 200));
       }
     } else {
-      noFill();
+      fxVisCanvas.noFill();
       if (strokeBars) {
-        stroke(c, 60+constrain((val-5)*1.2f, 0, 190));
+        fxVisCanvas.stroke(c, 60+constrain((val-5)*1.2f, 0, 190));
       }
     }
 
-    rect(FFTXVis, height-FFTYVis-i*FFTdify, constrain(FFTvaluesVis[i]*2, 0, 600), FFTdify);
+    fxVisCanvas.rect(FFTXVis, height-FFTYVis-i*FFTdify, constrain(FFTvaluesVis[i]*2, 0, 600), FFTdify);
   }
 
   globalMoveSpeedMod = bassVolume/500;
@@ -3968,6 +4127,7 @@ public void writeTotalNodesMadeToFile() {
   }
   saveStrings("totalNodesMadeCounter.txt", list);
 }
+
 class ParticleSystem {
   ArrayList<particle> particles;
   float dragfac;
@@ -4060,13 +4220,13 @@ class particle {
     if (hitByShockwave) {
       bonusFlash = 0.3f;
     }
-    float flashFac = constrain((bandValue/80) + bonusFlash, 0.4f, 2);
+    float flashFac = constrain((bandValue/70) + bonusFlash, 0.4f, 2.5f);
     float r = abs(vel.x)*100+flashFac*40;
     float g = 255-abs(vel.x)*60+flashFac*60;
     float b = abs(vel.y)*400+flashFac*80;
     float a = constrain(lifespan*flashFac, 0, 255);
-    stroke(r, g, b, a);
-    line(pos.x, pos.y, ppos.x, ppos.y);
+    fxVisCanvas.stroke(r, g, b, a);
+    fxVisCanvas.line(pos.x, pos.y, ppos.x, ppos.y);
   }
 
   public void updatePpos() {

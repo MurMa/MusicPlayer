@@ -282,18 +282,9 @@ void InitializeGUI() {
     .setSpacingColumn(100)
     .setSpacingRow(20)
     .addItem("Draw Graphs", 0)
-    .addItem("Draw Spectrum", 0)
+    .addItem("Draw Frequency Spectrum", 0)
     .addItem("Go Only Spectrum", 0)
     ;
-  if (RenderFFT) {
-    CheckSettings.activate("Draw Frequency Spectrum");
-  }
-  if (CalcDia) {
-    CheckSettings.activate("Draw Graphs");
-  }
-  if (goOnlyFFT) {
-    CheckSettings.activate("Go Only Spectrum");
-  }
   CheckSettings.getItem(0).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
   CheckSettings.getItem(1).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
   CheckSettings.getItem(2).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
@@ -320,12 +311,7 @@ void InitializeGUI() {
     .addItem("Go Idle", 0)
     .addItem("Go Eco", 0)
     ;
-  if (goIdle) {
-    CheckSettings2.activate("Go Idle");
-  }
-  if (goEco) {
-    CheckSettings2.activate("Go Eco");
-  }
+
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -408,7 +394,6 @@ void InitializeGUI() {
    */
   CtrRaleway.setSize(16);
   MyBGColorPicker = cp5.addColorWheel(cp5, "BGCP")
-    .setRGB(BGcolor)
     .setPosition(halfwidth-350+40, halfheight-250-10+40)
     .setVisible(false);
   ;
@@ -731,12 +716,28 @@ void InitializeGUI() {
 
   setConsoleStyle();
 
-
-
-
+  if (RenderFFT) {
+    CheckSettings.activate("Draw Frequency Spectrum");
+  }
+  if (CalcDia) {
+    CheckSettings.activate("Draw Graphs");
+  }
+  if (goOnlyFFT) {
+    CheckSettings.activate("Go Only Spectrum");
+  }
+  if (goIdle) {
+    CheckSettings2.activate("Go Idle");
+  }
+  if (goEco) {
+    CheckSettings2.activate("Go Eco");
+  }
+  if (liveModeVis) {
+    CheckVisSettings.activate("Live Mode");
+  }
   if (TogNightMode.getState() == true) {
     NMode(true);
   } 
+  MyBGColorPicker.setRGB(BGcolor);
 
 
   if (CalcDia) {

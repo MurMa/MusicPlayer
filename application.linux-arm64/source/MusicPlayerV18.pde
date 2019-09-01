@@ -13,7 +13,6 @@ import controlP5.*;
 import java.util.Arrays;
 
 ControlP5 cp5;
-PostFX fx;
 
 Minim minim;
 AudioPlayer player;
@@ -32,7 +31,7 @@ int resy;
 //int yi = 15;
 //int y = ys;
 
-String mypath = "";
+String mypath = null;
 
 String savefilespath = "/SongData/";
 
@@ -44,6 +43,8 @@ int progress = 0;
 int calcpos = 0;
 boolean isCalculating = false;
 boolean ignoreExistingData;
+
+long menuSwitchMillis;
 
 StringList SearchResults = new StringList();
 
@@ -165,10 +166,8 @@ void setup()
 
   fullScreen(P2D);
   frameRate(60);
-  
-  //surface.setResizable(true);
 
-  fx = new PostFX(this);
+  //surface.setResizable(true);
 
   halfwidth = width/2;
   halfheight = height/2;
@@ -211,19 +210,27 @@ void setup()
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
   if (loadStrings("MyDirectory.txt") == null) {
-    selectFolder("Select a folder to process:", "folderSelected");
-    while (mypath.length()<1) {
-      delay(1);
-    }
+    saveStrings("MyDirectory.txt", new String[]{"directory"});
   } else {
     String temp[] = loadStrings("MyDirectory.txt");
-    mypath = temp[0];
+    if (temp.length > 0) {
+      if (!temp[0].equals("directory")) {
+        mypath = temp[0];
+      }
+    }
   }
 
-  println("Start to read files");
-
-  readFilesInDirectory();
-  filterfilenames();
+  filenames = new String[]{};
+  if (mypath != null) {
+    println("Start to read files");
+    readFilesInDirectory();
+    filterfilenames();
+  } else {
+    mypath = "";
+  }
+  if (filenames.length == 0) {
+    filenames = new String[]{"exampleSong.mp3"};
+  }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -233,15 +240,20 @@ void setup()
   volume = 50;
   gain = map(volume, 0, 100, lowestGain, highestGain);
 
-  player = minim.loadFile(mypath + filenames[0]);
-  player.pause();
-  meta = player.getMetaData();
+  if (mypath != null) {
+    player = minim.loadFile(mypath + filenames[0]);
+  } 
 
-  player.shiftGain(player.getGain(), gain, 300);
+  if (player != null) {
+    player.pause();
+    meta = player.getMetaData();
 
-  posvalue = 0;
-  possteps = player.length()/posdivide;
+    player.shiftGain(player.getGain(), gain, 300);
 
+
+    posvalue = 0;
+    possteps = player.length()/posdivide;
+  }
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -581,10 +593,10 @@ void updateMetaInfo() {
    text("Album: " + meta.album(), 5, y+=yi);
    text("Genre: " + meta.genre(), 5, y+=yi);
    */
-  if (meta.title().length() > 0) {
+  if (meta != null && meta.title().length() > 0) {
     //text(meta.title(), halfwidth, 370);
     TxtLSongTitle.setText(meta.title());
-  } else {
+  } else if (filenames.length > filepos) {
     altTitle = filenames[filepos].substring(0, filenames[filepos].length()-4);
     //text(altTitle, halfwidth, 370);
     TxtLSongTitle.setText(altTitle);

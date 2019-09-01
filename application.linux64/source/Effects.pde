@@ -1,7 +1,7 @@
 
 void drawPerlinLine(float time, float phaseDif, int innerRad, int outerRad, color col, float jitter, int offset) {
   float p1 = map(noise(lineTime*10+offset), 0.2, 0.7, -1, 1);
-  strokeWeight(1);
+  fxVisCanvas.strokeWeight(1);
   drawLine(time, phaseDif+p1*jitter, innerRad, outerRad, col);
 }
 
@@ -21,7 +21,7 @@ void changePhaseDif() {
 }
 
 void fadePhaseDif() {
-  float bonusSpeed = (curSecVol+lastSecVol)*0.000000002;
+  float bonusSpeed = lastSecVol*0.000000004;
   float fadeSpeed = 0.0010+bonusSpeed;
   if (linePhaseFadePos > 1 && linePhaseFadePos != 10) {
     linePhaseFadePos = 10;
@@ -32,26 +32,42 @@ void fadePhaseDif() {
   }
 }
 
+void fadeLineSpeed() {
+  float bonusSpeed = lastSecVol*0.000000001;
+  float fadeSpeed = 0.0000005+bonusSpeed;
+  if (abs(lineSpeed - targetLineSpeed) < fadeSpeed) {
+    lineSpeed = targetLineSpeed;
+    return;
+  }
+  if (lineSpeed > targetLineSpeed) {
+    lineSpeed -= fadeSpeed;
+  } else if (lineSpeed < targetLineSpeed) {
+    lineSpeed += fadeSpeed;
+  }
+}
+
+//Single Laser line
 void drawLine(float time, float phaseDif, int innerRad, int outerRad, color col) {
   float x1 = cos(time)*innerRad;
   float y1 = sin(time)*innerRad;
   float x2 = cos(time-phaseDif)*outerRad;
   float y2 = sin(time-phaseDif)*outerRad;
-  stroke(col);
-  line(width/2+x2, height/2+y2, width/2+x1, height/2+y1);
+  fxVisCanvas.stroke(col);
+  fxVisCanvas.line(width/2+x2, height/2+y2, width/2+x1, height/2+y1);
 }
 
+//Bunch of laser lines
 void drawLines() {
   fadePhaseDif();
-  float lineSpeed;
+  fadeLineSpeed();
 
-  float bonusSpeed = (curSecVol+lastSecVol)*0.000000005;
-  lineSpeed = 0.001+bonusSpeed;
+  float bonusSpeed = lastSecVol*0.00000002;
+  targetLineSpeed = 0.001+bonusSpeed;
   lineTime += lineSpeed;
   int innerRad = 80;
   int outerRad = height+200;
 
-  float bonusFac = (curSecVol+lastSecVol)*0.000001;
+  float bonusFac = lastSecVol*0.000002;
   //println(bonusFac);
   float stren = FFTvaluesVis[1];
   float flashFac = constrain((stren/100)+bonusFac, 0.25, 2);
@@ -73,49 +89,52 @@ void drawLines() {
   //println(p1);
   int lineCount = 10;
 
-  strokeWeight(3);
+  fxVisCanvas.strokeWeight(3);
   drawLine(lineTime, linePhaseDif, innerRad, outerRad, col);
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  strokeWeight(3);
+  fxVisCanvas.strokeWeight(3);
   drawLine(lineTime+HALF_PI, linePhaseDif, innerRad, outerRad, col);
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime+HALF_PI, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  strokeWeight(3);
+  fxVisCanvas.strokeWeight(3);
   drawLine(lineTime+PI, linePhaseDif, innerRad, outerRad, col);
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime+PI, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  strokeWeight(3);
+  fxVisCanvas.strokeWeight(3);
   drawLine(lineTime-HALF_PI, linePhaseDif, innerRad, outerRad, col);
   for (int i = 0; i< lineCount; i++) {
     drawPerlinLine(lineTime-HALF_PI, linePhaseDif, innerRad, outerRad, col2, jitter, i);
   }
-  
-  drawEllipseFade(new PVector(width/2, height/2), 1200, 40, color(0, 20));
+
+  //So that the laser beams fade out
+  drawEllipseFade(new PVector(width/2, height/2), 1600, 40, 40.0);
 }
 
-void drawEllipseFade(PVector o, float size, int steps, color col) {
-  ellipseMode(CENTER);
+void drawEllipseFade(PVector o, float size, int steps, float endalpha) {
+  fxVisCanvas.ellipseMode(CENTER);
   PVector origin = o.copy();
-  fill(col);
-  noStroke();
-  float dif = size / steps;
+  fxVisCanvas.noStroke();
+  float difSize = size / steps;
+  float difAlpha = endalpha / steps;
   for (int i = 0; i<steps; i++) {
-    ellipse(origin.x, origin.y, i*dif, i*dif);
+    fxVisCanvas.fill(0, endalpha-(difAlpha*i));
+    fxVisCanvas.ellipse(origin.x, origin.y, i*difSize, i*difSize);
   }
 }
 
 void drawLight(PVector o, int amount) {
+  fxVisCanvas.ellipseMode(CENTER);
   PVector origin = o.copy();
   amount = int(constrain(amount*1.4, 0, 60));
-  fill(50+amount*amount/18, 200-amount*amount/18, amount+50, 120-constrain(amount*2, 0, 119));
-  noStroke();
+  fxVisCanvas.fill(50+amount*amount/18, 200-amount*amount/18, amount+50, 120-constrain(amount*2, 0, 119));
+  fxVisCanvas.noStroke();
   for (int i = 0; i< amount; i++) {
-    ellipse(origin.x, origin.y, i*i/6, i*i/65);
-    ellipse(origin.x, origin.y, i*i/5, i/9);
+    fxVisCanvas.ellipse(origin.x, origin.y, i*i/6, i*i/65);
+    fxVisCanvas.ellipse(origin.x, origin.y, i*i/5, i/9);
   }
 }
 
@@ -132,33 +151,33 @@ void drawLightning(PVector o, int amount) {
     if (bolts > 0) {
       difA = 250/bolts;
     }
-    rectMode(CENTER);
+    fxVisCanvas.rectMode(CENTER);
 
     PVector P2 = new PVector(random(0, 20), random(-5, 5));
-    pushMatrix();
-    translate(P1.x, P1.y);
+    fxVisCanvas.pushMatrix();
+    fxVisCanvas.translate(P1.x, P1.y);
     for (int i = 0; i< bolts; i++) {
-      stroke(bolts*bS, bolts*bS, bolts*bS, constrain(maxA-i*i/10*difA, 0, 255));
-      line(0, 0, P2.x, P2.y);
+      fxVisCanvas.stroke(bolts*bS, bolts*bS, bolts*bS, constrain(maxA-i*i/10*difA, 0, 255));
+      fxVisCanvas.line(0, 0, P2.x, P2.y);
       //ellipse(0,0,2,2);
 
-      translate(P2.x, P2.y);
+      fxVisCanvas.translate(P2.x, P2.y);
       P2 = new PVector(random(0, 20), random(-5, 5));
     }
-    popMatrix();
+    fxVisCanvas.popMatrix();
 
     P2 = new PVector(random(-20, 0), random(-5, 5));
-    pushMatrix();
-    translate(P1.x, P1.y);
+    fxVisCanvas.pushMatrix();
+    fxVisCanvas.translate(P1.x, P1.y);
     for (int i = 0; i< bolts; i++) {
-      stroke(bolts*bS, bolts*bS, bolts*bS, constrain(maxA-i*i/10*difA, 0, 255));
-      line(0, 0, P2.x, P2.y);
+      fxVisCanvas.stroke(bolts*bS, bolts*bS, bolts*bS, constrain(maxA-i*i/10*difA, 0, 255));
+      fxVisCanvas.line(0, 0, P2.x, P2.y);
       //ellipse(0,0,2,2);
 
-      translate(P2.x, P2.y);
+      fxVisCanvas.translate(P2.x, P2.y);
       P2 = new PVector(random(-20, 0), random(-5, 5));
     }
-    popMatrix();
+    fxVisCanvas.popMatrix();
   }
 }
 

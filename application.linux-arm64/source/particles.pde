@@ -90,13 +90,13 @@ class particle {
     if (hitByShockwave) {
       bonusFlash = 0.3;
     }
-    float flashFac = constrain((bandValue/80) + bonusFlash, 0.4, 2);
+    float flashFac = constrain((bandValue/70) + bonusFlash, 0.4, 2.5);
     float r = abs(vel.x)*100+flashFac*40;
     float g = 255-abs(vel.x)*60+flashFac*60;
     float b = abs(vel.y)*400+flashFac*80;
     float a = constrain(lifespan*flashFac, 0, 255);
-    stroke(r, g, b, a);
-    line(pos.x, pos.y, ppos.x, ppos.y);
+    fxVisCanvas.stroke(r, g, b, a);
+    fxVisCanvas.line(pos.x, pos.y, ppos.x, ppos.y);
   }
 
   void updatePpos() {

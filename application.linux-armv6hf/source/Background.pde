@@ -46,9 +46,9 @@ void drawBackground() {
       bgNodes[i][j].run();
     }
   }
-  filter(blurHor);
-  filter(blurVert);
-  rectMode(CORNER);
+  fxVisCanvas.filter(blurHor);
+  fxVisCanvas.filter(blurVert);
+  fxVisCanvas.rectMode(CORNER);
 }
 
 void setBackgroundColorsByIndex(int index) {
@@ -151,14 +151,14 @@ class BackgroundNode {
     r *= curBright;
     g *= curBright;
     b *= curBright;
-    fill(r, g, b, 170);
-    noStroke();
+    fxVisCanvas.fill(r, g, b, 170);
+    fxVisCanvas.noStroke();
 
     //rectMode(CORNER);
     //rect(posX, posY, dim, dim);
 
-    ellipseMode(CORNER);
-    ellipse(posX, posY, dim, dim);
+    fxVisCanvas.ellipseMode(CORNER);
+    fxVisCanvas.ellipse(posX, posY, dim, dim);
   }
 
   void setColorAndFadeTo(color next, float speed) {

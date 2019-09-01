@@ -113,7 +113,7 @@ void InitializeGUI() {
     .setId(3)
     ;
   TabSettings.getCaptionLabel().setFont(CtrRaleway);
-  
+
   TabVisualizer = cp5.addTab("Visualizer")
     .setHeight(40)
     .setWidth(150)
@@ -282,22 +282,13 @@ void InitializeGUI() {
     .setSpacingColumn(100)
     .setSpacingRow(20)
     .addItem("Draw Graphs", 0)
-    .addItem("Draw Spectrum", 0)
+    .addItem("Draw Frequency Spectrum", 0)
     .addItem("Go Only Spectrum", 0)
     ;
-  if (RenderFFT) {
-    CheckSettings.activate("Draw Frequency Spectrum");
-  }
-  if (CalcDia) {
-    CheckSettings.activate("Draw Graphs");
-  }
-  if (goOnlyFFT) {
-    CheckSettings.activate("Go Only Spectrum");
-  }
   CheckSettings.getItem(0).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
   CheckSettings.getItem(1).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
   CheckSettings.getItem(2).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(15);
-  
+
   CtrRaleway.setSize(16);
   CheckVisSettings = cp5.addCheckBox("ChVisSettings")
     .setPosition(halfwidth-300, 370)
@@ -320,12 +311,7 @@ void InitializeGUI() {
     .addItem("Go Idle", 0)
     .addItem("Go Eco", 0)
     ;
-  if (goIdle) {
-    CheckSettings2.activate("Go Idle");
-  }
-  if (goEco) {
-    CheckSettings2.activate("Go Eco");
-  }
+
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -408,7 +394,6 @@ void InitializeGUI() {
    */
   CtrRaleway.setSize(16);
   MyBGColorPicker = cp5.addColorWheel(cp5, "BGCP")
-    .setRGB(BGcolor)
     .setPosition(halfwidth-350+40, halfheight-250-10+40)
     .setVisible(false);
   ;
@@ -537,27 +522,27 @@ void InitializeGUI() {
   ////////////////////////////////////////////////////////////////////////////////////////////////////
   /*
   CtrRaleway.setSize(16);
-  TogConsole = cp5.addToggle("toggleconsole")
-    .setPosition(30, 320)
-    .setSize(140, 40)
-    .setCaptionLabel("console")
-    ;
-  TogConsole.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
-
-  CtrRaleway.setSize(16);
-  consoleText = cp5.addTextarea("console")
-    .setPosition(200, 100)
-    .setSize(850, 400)
-    .setLineHeight(15)
-    .setFont(CtrRaleway)
-    .setMoveable(true) 
-    .setTab(TabSettings)
-    ;
-  consoleText.hide();
-  consoleText.clear();
-  console = cp5.addConsole(consoleText);
-  console.pause();
-*/
+   TogConsole = cp5.addToggle("toggleconsole")
+   .setPosition(30, 320)
+   .setSize(140, 40)
+   .setCaptionLabel("console")
+   ;
+   TogConsole.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
+   
+   CtrRaleway.setSize(16);
+   consoleText = cp5.addTextarea("console")
+   .setPosition(200, 100)
+   .setSize(850, 400)
+   .setLineHeight(15)
+   .setFont(CtrRaleway)
+   .setMoveable(true) 
+   .setTab(TabSettings)
+   ;
+   consoleText.hide();
+   consoleText.clear();
+   console = cp5.addConsole(consoleText);
+   console.pause();
+   */
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
   CtrRaleway.setSize(16);
@@ -731,23 +716,43 @@ void InitializeGUI() {
 
   setConsoleStyle();
 
-
-
-
+  if (RenderFFT) {
+    CheckSettings.activate("Draw Frequency Spectrum");
+  }
+  if (CalcDia) {
+    CheckSettings.activate("Draw Graphs");
+  }
+  if (goOnlyFFT) {
+    CheckSettings.activate("Go Only Spectrum");
+  }
+  if (goIdle) {
+    CheckSettings2.activate("Go Idle");
+  }
+  if (goEco) {
+    CheckSettings2.activate("Go Eco");
+  }
+  if (liveModeVis) {
+    CheckVisSettings.activate("Live Mode");
+  }
   if (TogNightMode.getState() == true) {
     NMode(true);
   } 
+  MyBGColorPicker.setRGB(BGcolor);
 
 
   if (CalcDia) {
-    loadSongDiagram(filenames[filepos]);
-    renderSongDiagram();
+    if (filenames.length > filepos) {
+      loadSongDiagram(filenames[filepos]);
+      renderSongDiagram();
+    }
   }
 
   updateMetaInfo();
-  playerlengthsec = int((player.length() / 1000) % 60);
-  playerlengthmin = int((player.length() / 60000) % 60);
-  possteps = player.length()/posdivide;
+  if (player != null) {
+    playerlengthsec = int((player.length() / 1000) % 60);
+    playerlengthmin = int((player.length() / 60000) % 60);
+    possteps = player.length()/posdivide;
+  }
   SlPosition.setRange(0, possteps);
   SlPosition.getCaptionLabel().align(ControlP5.RIGHT, ControlP5.BOTTOM_OUTSIDE);
 }
@@ -764,11 +769,11 @@ void InitializeGUI() {
 void setConsoleStyle() {
   /*
   consoleText.setColor(color(0));
-  consoleText.setColorBackground(color(255, 240));
-  consoleText.setColorForeground(color(100));
-  consoleText.setColorActive(color(200));
-  consoleText.setScrollBackground(color(80)); 
-  consoleText.setScrollForeground(color(150)); 
-  consoleText.setScrollActive(color(30));
-  */
+   consoleText.setColorBackground(color(255, 240));
+   consoleText.setColorForeground(color(100));
+   consoleText.setColorActive(color(200));
+   consoleText.setScrollBackground(color(80)); 
+   consoleText.setScrollForeground(color(150)); 
+   consoleText.setScrollActive(color(30));
+   */
 }

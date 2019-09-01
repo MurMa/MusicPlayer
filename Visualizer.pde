@@ -37,8 +37,10 @@ FFT fftVis;
 color backgroundVisCol;
 color fittingBackgroundVisCol;
 
-//Shaders for blurring when in menu
+//Shader for blurring when in menu
 PShader blur;
+
+//Shaders for blurring background Nodes
 PShader blurHor;
 PShader blurVert;
 
@@ -69,6 +71,8 @@ boolean fillBars;
 boolean strokeBars;
 boolean showParticles;
 boolean colorNodes;
+boolean showLaserBeams;
+boolean showPostFx;
 
 PFont RalewayS;
 PFont RalewayM;
@@ -82,6 +86,8 @@ MyToggle B5;
 MyButton B6;
 MyToggle B7;
 MyToggle B8;
+MyToggle B9;
+MyToggle B10;
 
 AudioInput liveIn;
 boolean liveModeVis;
@@ -104,8 +110,7 @@ color[] fittingBackgroundColors;
 PGraphics menuVisCanvas;
 PGraphics fxVisCanvas;
 PostFXSupervisor supervisor;
-BrightPass brightPass;
-SobelPass sobelPass;
+BlurPass blurPass;
 BloomPass bloomPass;
 RGBSplitPass rgbSplitPass;
 BrightnessContrastPass brightnessContrastPass;
@@ -118,8 +123,7 @@ void setupVisualizer() {
   fxVisCanvas = createGraphics(width, height, P2D);
   // create supervisor and load shaders
   supervisor = new PostFXSupervisor(this);
-  brightPass = new BrightPass(this, 0.3f);
-  sobelPass = new SobelPass(this);
+  blurPass = new BlurPass(this, 40, 100.0, true);
   bloomPass = new BloomPass(this, 0.6, 20, 40.0);
   rgbSplitPass = new RGBSplitPass(this, 0);
   brightnessContrastPass = new BrightnessContrastPass(this, 0.0, 1.0);
@@ -143,13 +147,15 @@ void setupVisualizer() {
 
   setBackgroundConsts();
 
-  showLightning = true;
+  showLightning = false;
   showLights = true;
   fillBars = true;
   strokeBars = true;
   showFFTHighlights = true;
   showParticles = true;
   colorNodes = true;
+  showLaserBeams = true;
+  showPostFx = true;
 
   FFTbarsVis = 25;
 
@@ -178,13 +184,13 @@ void setupVisualizer() {
 
   PVector btnPos = new PVector(20, 25);
   int btnDX = width/50;
-  int btnCount = 8;
+  int btnCount = 10;
   PVector btnDim = new PVector((width-btnDX*btnCount)/btnCount, 50);
   PVector btnCurpos = btnPos.copy();
 
   B6 = new MyButton(btnCurpos, btnDim, "Back", color(200), color(100));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
-  B1 = new MyToggle(btnCurpos, btnDim, "FFT Highlights", showFFTHighlights, color(200, 255, 200), color(255, 200, 200));
+  B1 = new MyToggle(btnCurpos, btnDim, "Highlights", showFFTHighlights, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B2 = new MyToggle(btnCurpos, btnDim, "Fill Bars", fillBars, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
@@ -197,6 +203,10 @@ void setupVisualizer() {
   B7 = new MyToggle(btnCurpos, btnDim, "Particles", showParticles, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B8 = new MyToggle(btnCurpos, btnDim, "Color Nodes", colorNodes, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B9 = new MyToggle(btnCurpos, btnDim, "Laser Beams", showLaserBeams, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B10 = new MyToggle(btnCurpos, btnDim, "Post Fx", showPostFx, color(200, 255, 200), color(255, 200, 200));
 
   B1.setFont("Raleway", 24, true);
   B2.setFont("Raleway", 24, true);
@@ -205,6 +215,9 @@ void setupVisualizer() {
   B5.setFont("Raleway", 24, true);
   B6.setFont("Raleway", 24, true);
   B7.setFont("Raleway", 24, true);
+  B8.setFont("Raleway", 24, true);
+  B9.setFont("Raleway", 24, true);
+  B10.setFont("Raleway", 24, true);
 
   particleSystem = new ParticleSystem();
 
@@ -280,7 +293,6 @@ void setContrastPassByVolumeLevel() {
 }
 
 void drawVisualizer() {
-
   fxVisCanvas.beginDraw();
 
   fxVisCanvas.ellipseMode(CENTER);
@@ -289,20 +301,19 @@ void drawVisualizer() {
   fxVisCanvas.noStroke();
   fxVisCanvas.rect(0, 0, width, height);
 
-  /*rectMode(CORNER);
-   ellipseMode(CENTER);
-   fill(0, 150);
-   noStroke();
-   rect(0, 0, width, height);*/
   t += 0.01;
 
   CalculateFFT();
 
-  setRgbSplitPassByBassLevel();
-  setContrastPassByVolumeLevel();
+  if (showPostFx) {
+    setRgbSplitPassByBassLevel();
+    setContrastPassByVolumeLevel();
+  }
 
   drawBackground();
-  drawLines();
+  if (showLaserBeams) {
+    drawLines();
+  }
 
   runRgbCube();
 
@@ -357,11 +368,11 @@ void drawVisualizer() {
   blendMode(SCREEN);
   supervisor.render(menuVisCanvas);
   supervisor.render(fxVisCanvas);
-  supervisor.pass(bloomPass);
-  supervisor.pass(rgbSplitPass);
-  supervisor.pass(brightnessContrastPass);
-  //supervisor.pass(brightPass);
-  //supervisor.pass(sobelPass);
+  if (menuY < -100 && showPostFx) {
+    supervisor.pass(bloomPass);
+    supervisor.pass(rgbSplitPass);
+    supervisor.pass(brightnessContrastPass);
+  }
   supervisor.compose();
   blendMode(BLEND);
 }

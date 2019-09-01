@@ -3,14 +3,15 @@
 
 
 void controlEvent(ControlEvent theControlEvent) {
-  if (curTabIndex != 4 || (curTabIndex == 4 && B6.MouseOverButton())) {
-    if (theControlEvent.isTab()) {
+  if (curTabIndex != 4 || (curTabIndex == 4 && B6 != null && B6.MouseOverButton())) {
+    if (theControlEvent != null && theControlEvent.isTab()) {
       curTabIndex = theControlEvent.getTab().getId();
-      switch(theControlEvent.getTab().getId()) {
+      switch(curTabIndex) {
       case 1: //SongList
         RenderDia = false;
         RenderFFT = false;
         BuQuit.moveTo(TabSonglist);
+        menuSwitchMillis = millis();
         break;
       case 2: //Player
         RenderDia = true;
@@ -18,21 +19,24 @@ void controlEvent(ControlEvent theControlEvent) {
           RenderFFT = true;
         }
         BuQuit.moveTo(TabPlayer);
+        menuSwitchMillis = millis();
         break;
       case 3: //Settings
         RenderDia = false;
         RenderFFT = false;
         BuQuit.moveTo(TabSettings);
+        menuSwitchMillis = millis();
         break;
       case 4: //Visualizer        
         visualizerAnalyseSong();
         //visualizerCheckLiveMode();
         RenderDia = false;
         RenderFFT = false;
+        menuSwitchMillis = millis();
         break;
       }
     }
-    if (theControlEvent.isFrom(CheckSettings2)) {
+    if (theControlEvent != null && theControlEvent.isFrom(CheckSettings2)) {
       float[]a = CheckSettings2.getArrayValue();
       if (a[0] == 1) {
         goIdle= true;
@@ -48,7 +52,7 @@ void controlEvent(ControlEvent theControlEvent) {
       println("Idle: " + goIdle);
       println("---");
     }
-    if (theControlEvent.isFrom(MyBGColorPicker)) {
+    if (theControlEvent != null && theControlEvent.isFrom(MyBGColorPicker)) {
       color col = MyBGColorPicker.getRGB();
       BGcolor = col;
       String[] temp = new String[1];
@@ -57,41 +61,49 @@ void controlEvent(ControlEvent theControlEvent) {
     }
 
     if (GroupTheme.isVisible()) {
-      if (theControlEvent.isFrom(BackgroundCP)) {
+      if (theControlEvent != null && theControlEvent.isFrom(BackgroundCP) && theControlEvent.arrayValue().length == 4) {
         int r = int(theControlEvent.getArrayValue(0));
         int g = int(theControlEvent.getArrayValue(1));
         int b = int(theControlEvent.getArrayValue(2));
         int a = int(theControlEvent.getArrayValue(3));
         color col = color(r, g, b, a);
         CBackground = col;
-        SlThemeExample.setColorBackground(col);
+        if (SlThemeExample != null) {
+          SlThemeExample.setColorBackground(col);
+        }
       }
-      if (theControlEvent.isFrom(ForegroundCP)) {
+      if (theControlEvent != null && theControlEvent.isFrom(ForegroundCP) && theControlEvent.arrayValue().length == 4) {
         int r = int(theControlEvent.getArrayValue(0));
         int g = int(theControlEvent.getArrayValue(1));
         int b = int(theControlEvent.getArrayValue(2));
         int a = int(theControlEvent.getArrayValue(3));
         color col = color(r, g, b, a);
         CForeground = col;
-        SlThemeExample.setColorForeground(col);
+        if (SlThemeExample != null) {
+          SlThemeExample.setColorForeground(col);
+        }
       }
-      if (theControlEvent.isFrom(ActiveCP)) {
+      if (theControlEvent != null && theControlEvent.isFrom(ActiveCP) && theControlEvent.arrayValue().length == 4) {
         int r = int(theControlEvent.getArrayValue(0));
         int g = int(theControlEvent.getArrayValue(1));
         int b = int(theControlEvent.getArrayValue(2));
         int a = int(theControlEvent.getArrayValue(3));
         color col = color(r, g, b, a);
         CActive = col;
-        SlThemeExample.setColorActive(col);
+        if (SlThemeExample != null) {
+          SlThemeExample.setColorActive(col);
+        }
       }
-      if (theControlEvent.isFrom(LabelCP)) {
+      if (theControlEvent != null && theControlEvent.isFrom(LabelCP) && theControlEvent.arrayValue().length == 4) {
         int r = int(theControlEvent.getArrayValue(0));
         int g = int(theControlEvent.getArrayValue(1));
         int b = int(theControlEvent.getArrayValue(2));
         int a = int(theControlEvent.getArrayValue(3));
         color col = color(r, g, b, a);
         CLabel = col;
-        SlThemeExample.setColorLabel(col);
+        if (SlThemeExample != null) {
+          SlThemeExample.setColorLabel(col);
+        }
       }
     }
   }
@@ -152,7 +164,9 @@ void LastSong() {
 void ChSettings(float[]a ) {
   if (a[0] == 1) {
     CalcDia= true;
-    loadSongDiagram(filenames[filepos]);
+    if (filenames.length > filepos) {
+      loadSongDiagram(filenames[filepos]);
+    }
   } else {
     CalcDia= false;
     spectra = new byte[0];
