@@ -368,7 +368,7 @@ void drawVisualizer() {
   blendMode(SCREEN);
   supervisor.render(menuVisCanvas);
   supervisor.render(fxVisCanvas);
-  if (menuY < -100 && showPostFx) {
+  if (menuY <= -100 && showPostFx) {
     supervisor.pass(bloomPass);
     supervisor.pass(rgbSplitPass);
     supervisor.pass(brightnessContrastPass);

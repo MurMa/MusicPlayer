@@ -11,6 +11,7 @@ import ddf.minim.*;
 import controlP5.*;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 ControlP5 cp5;
 
@@ -561,6 +562,17 @@ void renderprogressbar(String log, String prog) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void updateFilenames(String[] names) {
+  String[] clippedFilenames = new String[names.length];
+  for (int i = 0; i<names.length; i++) {
+    clippedFilenames[i] = names[i].substring(0, names[i].length()-4);
+    if (clippedFilenames[i].endsWith("mp3") || clippedFilenames[i].endsWith("MP3")) {
+      clippedFilenames[i] = clippedFilenames[i].substring(0, clippedFilenames[i].length()-4);
+    }
+  }
+  ListSongs.addItems(clippedFilenames);
+}
 
 void listSearchResults() {
   ListSongs.addItems(SearchResults.array());

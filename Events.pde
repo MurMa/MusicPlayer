@@ -140,6 +140,18 @@ void RandomSong() {
   }
 }
 
+void ShuffleSongs() {
+  ArrayList<String> filenamesList = new ArrayList<String>();
+  for (int i = 0; i<filenames.length; i++) {
+    filenamesList.add(filenames[i]);
+  }
+  Collections.shuffle(filenamesList);
+  for (int i = 0; i<filenames.length; i++) {
+    filenames[i] = filenamesList.get(i);
+  }
+  NextSong();
+}
+
 
 void PlayPause(boolean value) {
   if (value) {
@@ -229,7 +241,7 @@ void Search(String searchtext) {
   } else {
     SearchResults.clear();
     ListSongs.clear();
-    ListSongs.addItems(filenames);
+    updateFilenames(filenames);
     ListSongs.setCaptionLabel("Your Songs: ");
   }
 }
@@ -238,7 +250,7 @@ void ClearSearch() {
   TxtFSearch.clear();
   SearchResults.clear();
   ListSongs.clear();
-  ListSongs.addItems(filenames);
+  updateFilenames(filenames);
   ListSongs.setCaptionLabel("Your Songs: ");
 }
 

@@ -21,7 +21,7 @@ Textfield TxtFSearch;
 Button BuChangeDirectory;
 Button BuQuit;
 Button BuCalcAllDia;
-Button BuRandomSong;
+Button BuShuffleSongs;
 Button BuSaveSettings;
 Button BuDefaultSettings;
 
@@ -211,11 +211,11 @@ void InitializeGUI() {
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
   CtrRaleway.setSize(16);
-  BuRandomSong = cp5.addButton("RandomSong")
+  BuShuffleSongs = cp5.addButton("ShuffleSongs")
     .setPosition(30, 30)
     .setSize(140, 40)
     .setColorCaptionLabel(color(255))
-    .setCaptionLabel("Random Song")
+    .setCaptionLabel("Shuffle Songs")
     ;
 
 
@@ -335,7 +335,7 @@ void InitializeGUI() {
     .setType(ScrollableList.LIST)
     ;
   ListSongs.getCaptionLabel().setSize(18);
-  ListSongs.addItems(filenames);
+  updateFilenames(filenames);
   ListSongs.setCaptionLabel("Your Songs: ");
   ListSongs.getCaptionLabel().setLineHeight(10);
 
@@ -602,7 +602,7 @@ void InitializeGUI() {
   BuPlayPause.moveTo(TabPlayer);
   BuNextSong.moveTo(TabPlayer);
   BuLastSong.moveTo(TabPlayer);
-  BuRandomSong.moveTo(TabPlayer);
+  BuShuffleSongs.moveTo(TabPlayer);
 
   TxtFSearch.moveTo(TabSonglist);
   ListSongs.moveTo(TabSonglist);

@@ -82,7 +82,7 @@ void folderSelected(File selection) {
     readFilesInDirectory();
     filterfilenames();
     ListSongs.clear();
-    ListSongs.addItems(filenames);
+    updateFilenames(filenames);
     filepos = -1;
     loadSong(true);
     checkfilestatus();
