@@ -21,6 +21,9 @@ int FFTbarsVis;
 float FFTdify;
 float FFTsmooth;
 
+int particleSpawnCountHighlight;
+int particleSpawnCount;
+
 float t;
 //Laser beams
 float lineTime;
@@ -157,7 +160,7 @@ void setupVisualizer() {
   showLaserBeams = true;
   showPostFx = true;
 
-  FFTbarsVis = 25;
+  FFTbarsVis = 30; //25
 
   FFTvaluesVis = new float[FFTbarsVis];
 
@@ -166,10 +169,13 @@ void setupVisualizer() {
   FFTHighlight2Vis = color(0, 190, 240); 
 
   FFTXVis = width/2;
-  FFTYVis = 100;
+  FFTYVis = 50;
 
   float FFTheight = height-FFTYVis*2;
   FFTdify = FFTheight/FFTbarsVis;
+
+  particleSpawnCountHighlight = round(constrain(375/FFTbarsVis, 1, 100)); //15 for 25 bars
+  particleSpawnCount = round(constrain(25/FFTbarsVis, 1, 10)); //1 for 25 bars
 
   FFTsmooth = 0.3;
   nodeSmooth = 0.5;
@@ -246,7 +252,7 @@ void setupVisualizer() {
 
   noStroke();
 
-  nodeCount = 20;
+  nodeCount = int(FFTbarsVis*0.8);
   nodes = new Node[nodeCount];
   standardNodeBands = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 23, 42, 46};
   bandCounter = new int[FFTbarsVis];
@@ -522,21 +528,21 @@ void RenderFFTVis() {
         c = FFTHighlight1Vis;
       }
       if (showParticles) {
-        particleSystem.addParticleSystem(15, -val/150, systemPos, false);
-        particleSystem.addParticleSystem(15, val/150, systemPos, false);
+        particleSystem.addParticleSystem(particleSpawnCountHighlight, -val/150, systemPos, false);
+        particleSystem.addParticleSystem(particleSpawnCountHighlight, val/150, systemPos, false);
       }
     } else if (i>6 && val > fftVis.getBand(i+1) && val > fftVis.getBand(i-1) && val > 60) {
       if (showFFTHighlights) {
         c = FFTHighlight2Vis;
       }
       if (showParticles) {
-        particleSystem.addParticleSystem(15, -val/150, systemPos, false);
-        particleSystem.addParticleSystem(15, val/150, systemPos, false);
+        particleSystem.addParticleSystem(particleSpawnCountHighlight, -val/150, systemPos, false);
+        particleSystem.addParticleSystem(particleSpawnCountHighlight, val/150, systemPos, false);
       }
     } else if (val > 30) {
       if (showParticles) {
-        particleSystem.addParticleSystem(1, -val/150, systemPos, false);
-        particleSystem.addParticleSystem(1, val/150, systemPos, false);
+        particleSystem.addParticleSystem(particleSpawnCount, -val/150, systemPos, false);
+        particleSystem.addParticleSystem(particleSpawnCount, val/150, systemPos, false);
       }
     }
 
@@ -687,15 +693,33 @@ boolean isABonusHit(float curVal, float otherVal) {
 }
 
 void makeStandardNodes() {
-  for (int i = 0; i < nodeCount; i++) {
+  int nodesMadeCounter = 0;
+  for (int i = 0; i < standardNodeBands.length; i++) {
     int index = 0;
     if (standardNodeBands[i] < FFTbarsVis) {
       index = standardNodeBands[i];
-    } else {
-      index = floor(random(0, FFTbarsVis));
+      nodes[nodesMadeCounter] = new Node(index);
+      nodesMadeCounter++;
     }
-    nodes[i] = new Node(index);
-    //println("Made node for band " + bestBands.get(i));
+  }
+
+  for (int i = nodesMadeCounter; i < nodes.length; i++) {
+    int index = floor(random(0, FFTbarsVis));
+    int recCounter = 0;
+    for (int j = 0; j < nodes.length; j++) {
+      if (nodes[j] != null && nodes[j].getBand() == index) {
+        index = floor(random(0, FFTbarsVis));
+        j = -1;
+        recCounter++;
+        if (recCounter > 10) {
+          break;
+        }
+      }
+    }
+    if (index >= 0) {
+      nodes[nodesMadeCounter] = new Node(index);
+      nodesMadeCounter++;
+    }
   }
   makeNodeConnections();
 }

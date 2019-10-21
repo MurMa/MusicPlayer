@@ -173,7 +173,7 @@ void RenderFFT() {
 
     stroke(0);
     fill(c, 100+constrain((fft.getBand(i)-5)*1.2, 0, 155));
-
+    
     float change = fft.getBand(i)-FFToldvalues[i];
     FFTvalues[i] = int(FFTvalues[i]+change*0.25);
 
