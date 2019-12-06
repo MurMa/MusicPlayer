@@ -9,6 +9,7 @@ void runRgbCube() {
 void setupRgbCube() {
   try {
     portName = Serial.list()[2];
+    println("Trying to connect to cube on port: " + portName);
     rgbCubePort = new Serial(this, portName, 115200);
   }
   catch(Exception e) {

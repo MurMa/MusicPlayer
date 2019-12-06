@@ -273,6 +273,7 @@ void visualizerCheckLiveMode() {
 
 void visualizerAnalyseSong() {
   if (!liveModeVis) {
+    //TODO: DONT DO THIS EVERY TIME, SAVE NODE DATA!!
     analyzeUsingAudioSample();
     calculateBandCounts();
     makeNodes();
@@ -487,7 +488,7 @@ void CalculateFFT() {
     fftVis.forward(player.mix);
   }
   for (int i = 0; i<FFTbarsVis; i++) {
-    fftVis.scaleBand(i, i/50+1);
+    fftVis.scaleBand(i, i/FFTbarsVis+1);
   }
 
   for (int i = 0; i<FFTbarsVis; i++) {

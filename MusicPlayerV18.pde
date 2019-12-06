@@ -243,6 +243,13 @@ void setup()
 
   if (mypath != null) {
     player = minim.loadFile(mypath + filenames[0]);
+    if (player == null) {
+      println("Path not working, falling back to exampleSong");
+      player = minim.loadFile("exampleSong.mp3");
+      mypath = "";
+    }
+  } else {
+    player = minim.loadFile("exampleSong.mp3");
   } 
 
   if (player != null) {
@@ -574,6 +581,16 @@ void updateFilenames(String[] names) {
   ListSongs.addItems(clippedFilenames);
 }
 
+StringList cleanFileNames(StringList list) {
+  for (int i = 0; i<list.size(); i++) {
+    list.set(i, list.get(i).substring(0, list.get(i).length()-4));
+    if (list.get(i).endsWith("mp3") || list.get(i).endsWith("MP3")) {
+      list.set(i, list.get(i).substring(0, list.get(i).length()-4));
+    }
+  }
+  return list;
+}
+
 void listSearchResults() {
   ListSongs.addItems(SearchResults.array());
 }
@@ -622,11 +639,13 @@ void updateMetaInfo() {
 void nameLoadSong(String SongName) {
 
   player.close();
-  //console.pause();
-  player = minim.loadFile(mypath + SongName);
-  //console.play();
+
+  println("Trying to load song: " + SongName);
+  String filename = SongName.endsWith(".mp3") ? SongName : SongName+".mp3";
+  player = minim.loadFile(mypath + filename);
+
   meta = player.getMetaData();
-  println("Loaded new Song: " + SongName);
+  println("Loaded new Song: " + meta.title());
   println("has length: " + player.length());
   player.play();
 
@@ -634,6 +653,9 @@ void nameLoadSong(String SongName) {
   player.setGain(gain);
   Playing = true;
   updateMetaInfo();
+  if (meta.title().length() < 1) {
+    TxtLSongTitle.setText(SongName);
+  }
   playerlengthsec = int((player.length() / 1000) % 60);
   playerlengthmin = int((player.length() / 60000) % 60);
   possteps = player.length()/posdivide;
@@ -690,7 +712,7 @@ void loadSong(boolean n) {
   SlPosition.getCaptionLabel().align(ControlP5.RIGHT, ControlP5.BOTTOM_OUTSIDE);
 
   if (curTabIndex == 4) {
-    visualizerAnalyseSong();
+    //visualizerAnalyseSong();
   }
 
   if (CalcDia) {

@@ -29,7 +29,11 @@ void savefilestatus() {
 void readFilesInDirectory() {
   println("Files found in path: ");
   filenames = listFileNames(mypath);
-  printArray(filenames);
+  if (filenames == null) {
+    filenames = new String[]{};
+  } else {
+    printArray(filenames);
+  }
 }
 
 

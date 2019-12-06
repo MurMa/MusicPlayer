@@ -236,6 +236,7 @@ void Search(String searchtext) {
         SearchResults.append(filenames[i]);
       }
     }
+    SearchResults = cleanFileNames(SearchResults);
     listSearchResults();
     printArray("Search Results: " + SearchResults);
   } else {
