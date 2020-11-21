@@ -116,9 +116,8 @@ void Yes() {
   if (TxtLQuestion.getStringValue() == "The Files in your directory have changed. Do you want to calculate the Diagrams now?") {
     savefilestatus();
     isCalculating = true;
-    calcpos = 0;
+    calcpos = -1;
     progress = 0;
-    renderprogressbar(filenames[calcpos], calcpos + "/" + filenames.length);
     ListSongs.open();
   }
 }
@@ -302,9 +301,8 @@ void Position(int pos) {
 
 void CalcAllDia() {
   isCalculating = true;
-  calcpos = 0;
+  calcpos = -1;
   progress = 0;
-  renderprogressbar(filenames[calcpos], calcpos + "/" + filenames.length);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

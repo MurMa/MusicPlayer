@@ -2,34 +2,61 @@
 
 Thread songDiagramLoadThread;
 volatile boolean calculatingSpectra = false;
+volatile boolean spectraNeedsReload = false;
 
-void calcAllDiagrams(int pos) {
-  println("Analysing file " + pos);
+void calcAllDiagrams(final int pos) {
+  songDiagramLoadThread = new Thread() {
+    @Override
+      public void run() {
 
-  if (loadBytes(savefilespath + filenames[pos] + ".dat") == null || ignoreExistingData) {
-    calcSongDiagram(filenames[pos]);
-    saveBytes(savefilespath + filenames[pos] + ".dat", spectra);
-  } else {
-    println("File already exists!");
-  }
+      goalDiagramscale = 0;
+      if (!calculatingSpectra) {
+        calculatingSpectra = true;
+        goalDiagramscale = 0;
+        println("Analysing file " + pos);
 
-  progress = int(map(pos, 0, filenames.length, 0, 680));
+        if (loadBytes(savefilespath + filenames[pos] + ".dat") == null || ignoreExistingData) {
+          calcSongDiagram(filenames[pos]);
+          saveBytes(savefilespath + filenames[pos] + ".dat", spectra);
+        } else {
+          println("File already exists!");
+        }
+        calculatingSpectra = false;
+
+        progress = int(map(pos, 0, filenames.length, 0, 680));
+      } else {
+        println("There is already a calculation in progress, aborting");
+        return;
+      }
+    }
+  };
+  songDiagramLoadThread.start();
 }
 
 
 
 
 void loadSongDiagram(final String myfile) {
-
-  if(songDiagramLoadThread != null){
+  if(isCalculating){
+    println("Currently calculating, cannot load SongDiagram");
+    return;
+  }
+  if (songDiagramLoadThread != null) {
     songDiagramLoadThread.interrupt();
   }
-  songDiagramLoadThread = new Thread(){
+  songDiagramLoadThread = new Thread() {
     @Override
-    public void run(){
+      public void run() {
       println("Loading Diagram for " + myfile);
-      calculatingSpectra = true;
       goalDiagramscale = 0;
+      if (!calculatingSpectra) {
+        calculatingSpectra = true;
+        spectraNeedsReload = false;
+      } else {
+        println("There is already a calculation in progress, aborting");
+        spectraNeedsReload = true;
+        return;
+      }
       try {
         if (loadBytes(savefilespath + myfile + ".dat") == null) {
           calcSongDiagram(myfile);
@@ -48,17 +75,20 @@ void loadSongDiagram(final String myfile) {
             goalDiagramscale = goalDiagramscale-0.1;
           }
         }
-      } catch (Exception e) {
+      }
+      catch (InterruptedException e) {
+        println("loading songDiagram got interrupted");
+      } 
+      catch (Exception e) {
         println("Exception when loading songDiagram:");
         e.printStackTrace();
-      }finally{
+      }
+      finally {
         calculatingSpectra = false;
       }
-
     }
   };
   songDiagramLoadThread.start();
-
 }
 
 
@@ -82,7 +112,7 @@ void calcSongDiagram(String myfile) {
   }
 
   println("Tempplayer loaded after " + (millis()-oldmillis) + " ms");
-  if (tempplayer.length()>2000000 || tempplayer.length() < 0) {
+  if (tempplayer.length()>20000000 || tempplayer.length() < 0) { //tempplayer.length()>2000000
     println("FILE TOO BIG OR ZERO, CLOSING!");
     println("-----------------------------------------------");
     spectra = new byte[0];
@@ -108,19 +138,20 @@ void calcSongDiagram(String myfile) {
   while (totalChunks>190) {
     fftSize = fftSize*2;
     totalChunks = (leftChannel.length / (fftSize*s)) + 1;
-    println("NEWChunks: " + totalChunks);
-    println("NEWFFTSize: " + fftSize);
+    //println("NEWChunks: " + totalChunks);
+    //println("NEWFFTSize: " + fftSize);
   }
-  
+
   spectra = new byte[totalChunks];
   goalDiagramscale = 0.1;
   float diagramwidth = width-width/10;
   difx = diagramwidth/spectra.length;
-  
+
   float[] fftSamples = new float[fftSize];// then we create an array we'll copy sample data into for the FFT object
   FFT fft = new FFT( fftSize, jingle.sampleRate() );
 
   println("Starting analysis after " + (millis()-oldmillis) + " ms");
+  int lastPercent = -1;
   for (int chunkIdx = 0; chunkIdx < totalChunks; ++chunkIdx) {
 
     chunkStartIndex = chunkIdx * fftSize * s;
@@ -136,6 +167,12 @@ void calcSongDiagram(String myfile) {
     fft.forward( fftSamples );
 
     spectra[chunkIdx] = byte(fft.calcAvg(0, jingle.bufferSize())/5);
+
+    int percentDone = int(chunkIdx * 100.0 / totalChunks);
+    if(percentDone != lastPercent && percentDone % 10 == 0){
+      lastPercent = percentDone;
+      println("Analysis at " + percentDone + "%");
+    }
 
     //println("float[" + chunkIdx + "]: " + (fft.calcAvg(0, jingle.bufferSize())/4.5)  );
     //println("byte[" + chunkIdx + "]: " + spectra[chunkIdx]);
@@ -158,14 +195,14 @@ void calcSongDiagram(String myfile) {
 
 
 void renderSongDiagram() {
-  if(curDiagramscale < goalDiagramscale){
+  if (curDiagramscale < goalDiagramscale) {
     curDiagramscale += 0.1;
-    if(curDiagramscale > goalDiagramscale){
+    if (curDiagramscale > goalDiagramscale) {
       curDiagramscale = goalDiagramscale;
     }
-  }else if(curDiagramscale > goalDiagramscale){
+  } else if (curDiagramscale > goalDiagramscale) {
     curDiagramscale -= 0.1;
-    if(curDiagramscale < goalDiagramscale){
+    if (curDiagramscale < goalDiagramscale) {
       curDiagramscale = goalDiagramscale;
     }
   }

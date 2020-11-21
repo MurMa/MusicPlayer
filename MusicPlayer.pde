@@ -41,7 +41,7 @@ String[] filenames;
 int filepos = 0;
 
 int progress = 0;
-int calcpos = 0;
+int calcpos = -1;
 boolean isCalculating = false;
 boolean ignoreExistingData;
 
@@ -350,20 +350,6 @@ void draw()
   if (curTabIndex == 4) {
     drawVisualizer();
   } else {
-
-    if (isCalculating) {
-      calcAllDiagrams(calcpos);
-      renderprogressbar(filenames[calcpos], calcpos + "/" + filenames.length);
-      calcpos++;
-      if (calcpos == filenames.length) {
-        println("FINSISHED CALCULATION!");
-        println("----------------------");
-        isCalculating = false;
-      }
-      return;
-    }
-
-
     if (InputAction) {
       background(BGcolor);
       if (drawWallpaper) {
@@ -398,6 +384,24 @@ void draw()
         RenderFFT();
       }
 
+      if (CalcDia && spectraNeedsReload && !isCalculating) {
+        loadSongDiagram(filenames[filepos]);
+      }
+
+      if (isCalculating) {
+        if (!calculatingSpectra) {
+          calcpos++;
+          if (calcpos == filenames.length) {
+            println("FINSISHED CALCULATION!");
+            println("----------------------");
+            isCalculating = false;
+            return;
+          }
+          calcAllDiagrams(calcpos);
+        }
+        renderprogressbar(filenames[calcpos], calcpos + "/" + filenames.length);
+      }
+
       cp5.draw();
 
 
@@ -430,6 +434,19 @@ void draw()
 
         if (RenderDia && CalcDia) {
           renderSongDiagram();
+        }
+
+        if (isCalculating) {
+          if (!calculatingSpectra) {
+            calcAllDiagrams(calcpos);
+            calcpos++;
+            if (calcpos == filenames.length) {
+              println("FINSISHED CALCULATION!");
+              println("----------------------");
+              isCalculating = false;
+            }
+          }
+          renderprogressbar(filenames[calcpos], calcpos + "/" + filenames.length);
         }
 
         cp5.draw();
@@ -551,11 +568,11 @@ void renderprogressbar(String log, String prog) {
   strokeWeight(1);
 
   fill(0, 50, 100);
-  rect(40, 650, 1000, 40);
+  rect(halfwidth-500, halfheight+150, 1000, 40);
   textSize(16);
   fill(255);
-  text(log, 50, 660);
-  text(prog, 960, 660);
+  text(log, halfwidth-490, halfheight+160);
+  text(prog, halfwidth+430, halfheight+160);
 
   fill(0, 150, 250);
   rect(halfwidth-350, halfheight-75, 700, 150);
@@ -644,30 +661,19 @@ void nameLoadSong(String SongName) {
   println("Trying to load song: " + SongName);
   String filename = SongName.endsWith(".mp3") ? SongName : SongName+".mp3";
   player = minim.loadFile(mypath + filename);
-
-  meta = player.getMetaData();
-  println("Loaded new Song: " + meta.title());
-  println("has length: " + player.length());
   player.play();
-
-  BuPlayPause.setOn();
-  player.setGain(gain);
   Playing = true;
-  updateMetaInfo();
-  if (meta.title().length() < 1) {
-    TxtLSongTitle.setText(SongName);
-  }
-  playerlengthsec = int((player.length() / 1000) % 60);
-  playerlengthmin = int((player.length() / 60000) % 60);
-  possteps = player.length()/posdivide;
-  SlPosition.setRange(0, possteps);
-  SlPosition.getCaptionLabel().align(ControlP5.RIGHT, ControlP5.BOTTOM_OUTSIDE);
+  loadMetaDataAfterSongload();
 
   for (int i = 0; i<filenames.length; i++) {
     if (filenames[i].equals(SongName)) {
       filepos = i;
       break;
     }
+  }
+
+  if (meta.title().length() < 1) {
+    TxtLSongTitle.setText(SongName);
   }
 
   if (CalcDia) {
@@ -697,20 +703,9 @@ void loadSong(boolean n) {
   //console.pause();
   player = minim.loadFile(mypath + filenames[filepos]);
   //console.play();
-  meta = player.getMetaData();
-  println("Loaded new Song: " + filenames[filepos]);
-  println("has length: " + player.length());
   player.play();
-
-  BuPlayPause.setOn();
-  player.setGain(gain);
   Playing = true;
-  updateMetaInfo();
-  playerlengthsec = int((player.length() / 1000) % 60);
-  playerlengthmin = int((player.length() / 60000) % 60);
-  possteps = player.length()/posdivide; 
-  SlPosition.setRange(0, possteps);
-  SlPosition.getCaptionLabel().align(ControlP5.RIGHT, ControlP5.BOTTOM_OUTSIDE);
+  loadMetaDataAfterSongload();
 
   if (curTabIndex == 4) {
     //visualizerAnalyseSong();
@@ -724,6 +719,20 @@ void loadSong(boolean n) {
   }
 }
 
+public void loadMetaDataAfterSongload() {
+  meta = player.getMetaData();
+  println("Loaded new Song: " + meta.title());
+  println("has length: " + player.length());
+
+  BuPlayPause.setOn();
+  player.setGain(gain);
+  updateMetaInfo();
+  playerlengthsec = int((player.length() / 1000) % 60);
+  playerlengthmin = int((player.length() / 60000) % 60);
+  possteps = player.length()/posdivide;
+  SlPosition.setRange(0, possteps);
+  SlPosition.getCaptionLabel().align(ControlP5.RIGHT, ControlP5.BOTTOM_OUTSIDE);
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -733,7 +742,7 @@ boolean mouseIdle() {
 }
 
 void autoloadSong() {
-  if (Playing && player.isPlaying() == false) {
+  if (Playing && player != null && player.isPlaying() == false) {
     loadSong(true);
   }
 }

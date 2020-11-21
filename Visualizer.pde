@@ -301,7 +301,7 @@ void setRgbSplitPassByBassLevel() {
 
 void setContrastPassByVolumeLevel() {
   float contrast = FFTvaluesVis[1]*0.0008 + totalVolume*0.0001 + bassStreakCounter*0.04;
-  contrast = constrain(contrast*contrast+0.1, 0, 2.5);
+  contrast = constrain(contrast*contrast+0.1, 0, 3.0);
   //println("contrast:", contrast);
   brightnessContrastPass.setContrast(contrast);
 }
