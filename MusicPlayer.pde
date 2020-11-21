@@ -51,7 +51,8 @@ StringList SearchResults = new StringList();
 
 byte spectra[];
 float difx;
-float Diagramscale = 1.0;
+float curDiagramscale = 1.0;
+float goalDiagramscale = 1.0;
 int diagramY;
 int diagramX;
 boolean CalcDia = true;

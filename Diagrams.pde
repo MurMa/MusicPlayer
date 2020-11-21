@@ -1,5 +1,8 @@
 
 
+Thread songDiagramLoadThread;
+volatile boolean calculatingSpectra = false;
+
 void calcAllDiagrams(int pos) {
   println("Analysing file " + pos);
 
@@ -18,32 +21,43 @@ void calcAllDiagrams(int pos) {
 
 void loadSongDiagram(final String myfile) {
 
-
-  println("Loading Diagram for " + myfile);
-
-  Thread t = new Thread(){
+  if(songDiagramLoadThread != null){
+    songDiagramLoadThread.interrupt();
+  }
+  songDiagramLoadThread = new Thread(){
     @Override
     public void run(){
-
-      if (loadBytes(savefilespath + myfile + ".dat") == null) {
-        calcSongDiagram(myfile);
-      } else {
-        spectra = loadBytes(savefilespath + myfile + ".dat"); 
-        //printArray(spectra);
-        float diagramwidth = width-width/10;
-        difx = diagramwidth/spectra.length;
-        //println("Difx: " + difx);
-        Diagramscale = 1.5;
+      println("Loading Diagram for " + myfile);
+      calculatingSpectra = true;
+      goalDiagramscale = 0;
+      try {
+        if (loadBytes(savefilespath + myfile + ".dat") == null) {
+          calcSongDiagram(myfile);
+        } else {
+          Thread.sleep(300);
+          spectra = loadBytes(savefilespath + myfile + ".dat");
+          //printArray(spectra);
+          float diagramwidth = width-width/10;
+          difx = diagramwidth/spectra.length;
+          //println("Difx: " + difx);
+        }
+        calculatingSpectra = false;
+        goalDiagramscale = 1.5;
         for (int i = 0; i<spectra.length; i++) {
-          while (spectra[i]*Diagramscale>80) {
-            Diagramscale = Diagramscale-0.1;
+          while (spectra[i]*goalDiagramscale>80) {
+            goalDiagramscale = goalDiagramscale-0.1;
           }
         }
+      } catch (Exception e) {
+        println("Exception when loading songDiagram:");
+        e.printStackTrace();
+      }finally{
+        calculatingSpectra = false;
       }
 
     }
   };
-  t.start();
+  songDiagramLoadThread.start();
 
 }
 
@@ -97,11 +111,14 @@ void calcSongDiagram(String myfile) {
     println("NEWChunks: " + totalChunks);
     println("NEWFFTSize: " + fftSize);
   }
-
+  
+  spectra = new byte[totalChunks];
+  goalDiagramscale = 0.1;
+  float diagramwidth = width-width/10;
+  difx = diagramwidth/spectra.length;
+  
   float[] fftSamples = new float[fftSize];// then we create an array we'll copy sample data into for the FFT object
   FFT fft = new FFT( fftSize, jingle.sampleRate() );
-
-  spectra = new byte[totalChunks];
 
   println("Starting analysis after " + (millis()-oldmillis) + " ms");
   for (int chunkIdx = 0; chunkIdx < totalChunks; ++chunkIdx) {
@@ -125,8 +142,6 @@ void calcSongDiagram(String myfile) {
   }
   //printArray(spectra);
   jingle.close();
-  float diagramwidth = width-width/10;
-  difx = diagramwidth/spectra.length;
   println("Finished after " + (millis()-oldmillis) + " ms");
   println("spectralength: " + spectra.length);
   println("DifX: " + difx);
@@ -143,6 +158,17 @@ void calcSongDiagram(String myfile) {
 
 
 void renderSongDiagram() {
+  if(curDiagramscale < goalDiagramscale){
+    curDiagramscale += 0.1;
+    if(curDiagramscale > goalDiagramscale){
+      curDiagramscale = goalDiagramscale;
+    }
+  }else if(curDiagramscale > goalDiagramscale){
+    curDiagramscale -= 0.1;
+    if(curDiagramscale < goalDiagramscale){
+      curDiagramscale = goalDiagramscale;
+    }
+  }
   if (spectra != null && spectra.length > 0) {
     rectMode(CORNER);
 
@@ -159,7 +185,7 @@ void renderSongDiagram() {
 
       fill(DiagramColor, a); 
       stroke(0);
-      rect(int(i*difx+diagramX), diagramY, 5, -spectra[i]*Diagramscale);
+      rect(int(i*difx+diagramX), diagramY, 5, -spectra[i]*curDiagramscale);
     }
   }
 }
