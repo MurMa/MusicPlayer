@@ -76,6 +76,7 @@ boolean showParticles;
 boolean colorNodes;
 boolean showLaserBeams;
 boolean showPostFx;
+boolean showStarfield;
 
 PFont RalewayS;
 PFont RalewayM;
@@ -91,6 +92,7 @@ MyToggle B7;
 MyToggle B8;
 MyToggle B9;
 MyToggle B10;
+MyToggle B11;
 
 AudioInput liveIn;
 boolean liveModeVis;
@@ -159,6 +161,7 @@ void setupVisualizer() {
   colorNodes = true;
   showLaserBeams = true;
   showPostFx = true;
+  showStarfield = true;
 
   FFTbarsVis = 30; //25
 
@@ -190,7 +193,7 @@ void setupVisualizer() {
 
   PVector btnPos = new PVector(20, 25);
   int btnDX = width/50;
-  int btnCount = 10;
+  int btnCount = 11;
   PVector btnDim = new PVector((width-btnDX*btnCount)/btnCount, 50);
   PVector btnCurpos = btnPos.copy();
 
@@ -198,9 +201,9 @@ void setupVisualizer() {
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B1 = new MyToggle(btnCurpos, btnDim, "Highlights", showFFTHighlights, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
-  B2 = new MyToggle(btnCurpos, btnDim, "Fill Bars", fillBars, color(200, 255, 200), color(255, 200, 200));
+  B2 = new MyToggle(btnCurpos, btnDim, "Fill", fillBars, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
-  B3 = new MyToggle(btnCurpos, btnDim, "Stroke Bars", strokeBars, color(200, 255, 200), color(255, 200, 200));
+  B3 = new MyToggle(btnCurpos, btnDim, "Stroke", strokeBars, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B4 = new MyToggle(btnCurpos, btnDim, "Lights", showLights, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
@@ -208,11 +211,13 @@ void setupVisualizer() {
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
   B7 = new MyToggle(btnCurpos, btnDim, "Particles", showParticles, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
-  B8 = new MyToggle(btnCurpos, btnDim, "Color Nodes", colorNodes, color(200, 255, 200), color(255, 200, 200));
+  B8 = new MyToggle(btnCurpos, btnDim, "Colors", colorNodes, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
-  B9 = new MyToggle(btnCurpos, btnDim, "Laser Beams", showLaserBeams, color(200, 255, 200), color(255, 200, 200));
+  B9 = new MyToggle(btnCurpos, btnDim, "Beams", showLaserBeams, color(200, 255, 200), color(255, 200, 200));
   btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
-  B10 = new MyToggle(btnCurpos, btnDim, "Post Fx", showPostFx, color(200, 255, 200), color(255, 200, 200));
+  B10 = new MyToggle(btnCurpos, btnDim, "Starfield", showStarfield, color(200, 255, 200), color(255, 200, 200));
+  btnCurpos.add(new PVector(btnDim.x+btnDX, 0));
+  B11 = new MyToggle(btnCurpos, btnDim, "Post Fx", showPostFx, color(200, 255, 200), color(255, 200, 200));
 
   B1.setFont("Raleway", 24, true);
   B2.setFont("Raleway", 24, true);
@@ -224,6 +229,7 @@ void setupVisualizer() {
   B8.setFont("Raleway", 24, true);
   B9.setFont("Raleway", 24, true);
   B10.setFont("Raleway", 24, true);
+  B11.setFont("Raleway", 24, true);
 
   particleSystem = new ParticleSystem();
 
@@ -258,6 +264,7 @@ void setupVisualizer() {
   bandCounter = new int[FFTbarsVis];
   totalNodesMadeCounter = new int[FFTbarsVis];
 
+  initializeStarfield();
   setupRgbCube();
 }
 
@@ -293,10 +300,16 @@ void setRgbSplitPassByBassLevel() {
 }
 
 void setContrastPassByVolumeLevel() {
-  float contrast = lastSecVol*0.000004;
+  float contrast = FFTvaluesVis[1]*0.0008 + totalVolume*0.0001 + bassStreakCounter*0.04;
   contrast = constrain(contrast*contrast+0.1, 0, 2.5);
   //println("contrast:", contrast);
   brightnessContrastPass.setContrast(contrast);
+}
+
+void setSfSpeedByBassLevel(){
+  float newSpeed = FFTvaluesVis[1]*0.015 + totalVolume*0.0004;
+  float offsetSpeed = 0.5;
+  sfSpeed = constrain(newSpeed + offsetSpeed, 0, 1000);
 }
 
 void drawVisualizer() {
@@ -316,25 +329,29 @@ void drawVisualizer() {
     setRgbSplitPassByBassLevel();
     setContrastPassByVolumeLevel();
   }
-
+  
   drawBackground();
   if (showLaserBeams) {
     drawLines();
   }
-
+  
   runRgbCube();
-
+  
   detectMoodChange();
   checkShockwave();
   checkBassStreak();
-
+  
   if (showLightning) {
     RenderLightning();
   }
   if (showLights) {
     RenderLights();
   }
-
+  
+  if(showStarfield){
+    setSfSpeedByBassLevel();
+    drawStarfield();
+  }
 
   particleSystem.run();
 

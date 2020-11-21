@@ -88,7 +88,7 @@ class particle {
     float bandValue = heightToFTTVal(pos.y-FFTdify/2);
     float bonusFlash = 0;
     if (hitByShockwave) {
-      bonusFlash = 0.3;
+      bonusFlash = 0.5;
     }
     float flashFac = constrain((bandValue/70) + bonusFlash, 0.4, 2.5);
     float r = abs(vel.x)*100+flashFac*40;

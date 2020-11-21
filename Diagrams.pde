@@ -16,25 +16,35 @@ void calcAllDiagrams(int pos) {
 
 
 
-void loadSongDiagram(String myfile) {
+void loadSongDiagram(final String myfile) {
+
 
   println("Loading Diagram for " + myfile);
 
-  if (loadBytes(savefilespath + myfile + ".dat") == null) {
-    calcSongDiagram(myfile);
-  } else {
-    spectra = loadBytes(savefilespath + myfile + ".dat"); 
-    //printArray(spectra);
-    float diagramwidth = width-width/10;
-    difx = diagramwidth/spectra.length;
-    //println("Difx: " + difx);
-    Diagramscale = 1.5;
-    for (int i = 0; i<spectra.length; i++) {
-      while (spectra[i]*Diagramscale>80) {
-        Diagramscale = Diagramscale-0.1;
+  Thread t = new Thread(){
+    @Override
+    public void run(){
+
+      if (loadBytes(savefilespath + myfile + ".dat") == null) {
+        calcSongDiagram(myfile);
+      } else {
+        spectra = loadBytes(savefilespath + myfile + ".dat"); 
+        //printArray(spectra);
+        float diagramwidth = width-width/10;
+        difx = diagramwidth/spectra.length;
+        //println("Difx: " + difx);
+        Diagramscale = 1.5;
+        for (int i = 0; i<spectra.length; i++) {
+          while (spectra[i]*Diagramscale>80) {
+            Diagramscale = Diagramscale-0.1;
+          }
+        }
       }
+
     }
-  }
+  };
+  t.start();
+
 }
 
 
@@ -52,6 +62,11 @@ void calcSongDiagram(String myfile) {
 
 
   AudioPlayer tempplayer = minim.loadFile(mypath + myfile);
+  if (tempplayer == null) {
+    println("Could not load song " + mypath + myfile + " when calculating song diagram");
+    return;
+  }
+
   println("Tempplayer loaded after " + (millis()-oldmillis) + " ms");
   if (tempplayer.length()>2000000 || tempplayer.length() < 0) {
     println("FILE TOO BIG OR ZERO, CLOSING!");
@@ -128,22 +143,24 @@ void calcSongDiagram(String myfile) {
 
 
 void renderSongDiagram() {
-  rectMode(CORNER);
+  if (spectra != null && spectra.length > 0) {
+    rectMode(CORNER);
 
-  strokeWeight(1);
-  float a;
-  float dist;
-  float curpos = map(cp5.getController("Position").getValue(), 0, possteps, 0, spectra.length);
-  for (int i = 0; i<spectra.length; i++) {
+    strokeWeight(1);
+    float a;
+    float dist;
+    float curpos = map(cp5.getController("Position").getValue(), 0, possteps, 0, spectra.length);
+    for (int i = 0; i<spectra.length; i++) {
 
-    dist = curpos-i+0.5;
-    a = constrain(dist*210, mina, maxa);
-    //float dist = dist(i , 500 , map(cp5.getController("Position").getValue(), 0, possteps, 0, spectra.length) , 500);
-    //float a = 255 - constrain( dist*20 , 0 , 255) + mina;
+      dist = curpos-i+0.5;
+      a = constrain(dist*210, mina, maxa);
+      //float dist = dist(i , 500 , map(cp5.getController("Position").getValue(), 0, possteps, 0, spectra.length) , 500);
+      //float a = 255 - constrain( dist*20 , 0 , 255) + mina;
 
-    fill(DiagramColor, a); 
-    stroke(0);
-    rect(int(i*difx+diagramX), diagramY, 5, -spectra[i]*Diagramscale);
+      fill(DiagramColor, a); 
+      stroke(0);
+      rect(int(i*difx+diagramX), diagramY, 5, -spectra[i]*Diagramscale);
+    }
   }
 }
 
@@ -173,7 +190,7 @@ void RenderFFT() {
 
     stroke(0);
     fill(c, 100+constrain((fft.getBand(i)-5)*1.2, 0, 155));
-    
+
     float change = fft.getBand(i)-FFToldvalues[i];
     FFTvalues[i] = int(FFTvalues[i]+change*0.25);
 

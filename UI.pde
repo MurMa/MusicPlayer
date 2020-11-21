@@ -30,7 +30,10 @@ void mouseReleased() {
         showLaserBeams = B9.toggle();
       }
       if (B10.MouseOverButton()) {
-        showPostFx = B10.toggle();
+        showStarfield = B10.toggle();
+      }
+      if (B11.MouseOverButton()) {
+        showPostFx = B11.toggle();
       }
     }
   }
@@ -80,6 +83,7 @@ void drawMenu() {
     B8.run();
     B9.run();
     B10.run();
+    B11.run();
 
     menuVisCanvas.popMatrix();
   }
