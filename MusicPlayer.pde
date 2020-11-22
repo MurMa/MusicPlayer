@@ -21,7 +21,6 @@ AudioMetaData meta;
 
 String[] resolutions = {"2560 x 1440", "1920 x 1080", "1600 x 1200", "1280 x 720", "1024 x 768"};
 
-
 int halfwidth;
 int halfheight;
 
@@ -63,8 +62,6 @@ color DiagramColor;
 color MyDiagramColor = color(100, 180, 240);
 color DiagramColorNight = color(200, 40, 40);
 
-
-
 boolean FFTHighlights = true;
 
 color FFTColor;
@@ -88,12 +85,9 @@ float FFTdifx;
 int FFTvalues[] = new int[65];
 int FFToldvalues[] = new int[65];
 
-
 String altTitle;
 
 boolean Playing = false;
-
-
 
 boolean goIdle = false;
 double idletimer;
@@ -113,7 +107,6 @@ PVector[] adir = new PVector[numparticle];
 boolean drawWallpaper = false;
 String PathWallpaper;
 PImage Wallpaper;
-
 
 float volume;
 float gain;
@@ -135,7 +128,6 @@ int posdivide = 100;
 
 int playerlengthsec = 0;
 int playerlengthmin = 0;
-
 
 boolean InputAction = true;
 
@@ -369,6 +361,8 @@ void draw()
           if (mouseIdle()) {
             InputAction = false;
             fill(255);
+            textAlign(CORNER, TOP);
+            textSize(16);
             text("IDLE", 70, height-30);
           }
         }
@@ -389,17 +383,10 @@ void draw()
       }
 
       if (isCalculating) {
-        if (!calculatingSpectra) {
-          calcpos++;
-          if (calcpos == filenames.length) {
-            println("FINSISHED CALCULATION!");
-            println("----------------------");
-            isCalculating = false;
-            return;
-          }
-          calcAllDiagrams(calcpos);
+        if (calcAllDiagramsExecutor.isTerminated()) {
+          isCalculating = false;
         }
-        renderprogressbar(filenames[calcpos], calcpos + "/" + filenames.length);
+        renderprogressbar();
       }
 
       cp5.draw();
@@ -437,20 +424,16 @@ void draw()
         }
 
         if (isCalculating) {
-          if (!calculatingSpectra) {
-            calcAllDiagrams(calcpos);
-            calcpos++;
-            if (calcpos == filenames.length) {
-              println("FINSISHED CALCULATION!");
-              println("----------------------");
-              isCalculating = false;
-            }
+          if (calcAllDiagramsExecutor.isTerminated()) {
+            isCalculating = false;
           }
-          renderprogressbar(filenames[calcpos], calcpos + "/" + filenames.length);
+          renderprogressbar();
         }
 
         cp5.draw();
         fill(255);
+        textAlign(CORNER, TOP);
+        textSize(16);
         text("ECO", 70, height-30);
       }
     }
@@ -561,26 +544,44 @@ void animBG() {
 
 
 
-void renderprogressbar(String log, String prog) {
+void renderprogressbar() {
   rectMode(CORNER);
-  textAlign(CORNER, TOP);
+  textAlign(CENTER, CENTER);
   stroke(255);
   strokeWeight(1);
 
-  fill(0, 50, 100);
-  rect(halfwidth-500, halfheight+150, 1000, 40);
-  textSize(16);
-  fill(255);
-  text(log, halfwidth-490, halfheight+160);
-  text(prog, halfwidth+430, halfheight+160);
+  int activeThreads = calcAllDiagramsExecutor.getActiveCount();
+  int doneThreads = songDiagramsCalculated;
+  float rectSize = 680.0 / MAX_T;
 
-  fill(0, 150, 250);
-  rect(halfwidth-350, halfheight-75, 700, 150);
+  fill(0, 115, 200);
+  rect(halfwidth-350, halfheight-75, 700, 150+85);
   stroke(0);
   fill(0, 50, 100);
   rect(halfwidth-340, halfheight-65, 680, 130);
-  fill(200-map(progress, 0, 680, 0, 200), map(progress, 0, 680, 0, 200), 0);
-  rect(halfwidth-340, halfheight-65, progress, 130);
+
+  float percentDone = 100.0 * doneThreads / filenames.length;
+  fill(200-percentDone*2, percentDone*2, 0);
+  rect(halfwidth-340, halfheight-65, map(percentDone, 0, 100, 0, 680), 130);
+
+  for (int i = 0; i<MAX_T; i++) {
+    boolean threadActive = threadProgress[i] >= 0;
+    if (threadActive) {
+      fill(151, 166, 196);
+      rect(halfwidth-340+i*rectSize, halfheight-65+135, rectSize, 80);
+
+      fill(0, 200, 0, 200);
+      rect(halfwidth-340+i*rectSize, halfheight-65+135+80, rectSize, -threadProgress[i]*0.8);
+    } else {
+      fill(49, 54, 64);
+      rect(halfwidth-340+i*rectSize, halfheight-65+135, rectSize, 80);
+    }
+  }
+
+  stroke(255);
+  textSize(32);
+  fill(0);
+  text(doneThreads + "/" + filenames.length, halfwidth, halfheight);
 }
 
 

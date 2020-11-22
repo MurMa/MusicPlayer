@@ -113,12 +113,12 @@ void controlEvent(ControlEvent theControlEvent) {
 
 void Yes() {
   YNWindow.setVisible(false);
-  if (TxtLQuestion.getStringValue() == "The Files in your directory have changed. Do you want to calculate the Diagrams now?") {
+  if (TxtLQuestion.getStringValue().equals("The Files in your directory have changed. Do you want to calculate the Diagrams now?")) {
     savefilestatus();
-    isCalculating = true;
-    calcpos = -1;
-    progress = 0;
+    calcAllSongDiagrams();
     ListSongs.open();
+  }else if(TxtLQuestion.getStringValue().equals("Calculate " + filenames.length + " diagrams now? This could take a while.")){
+    calcAllSongDiagrams();
   }
 }
 
@@ -300,9 +300,10 @@ void Position(int pos) {
 }
 
 void CalcAllDia() {
-  isCalculating = true;
-  calcpos = -1;
-  progress = 0;
+  YNWindow.moveTo(TabSettings);
+  TxtLQuestion.setText("Calculate " + filenames.length + " diagrams now? This could take a while.");
+  YNWindow.setVisible(true);
+  YNWindow.bringToFront();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
